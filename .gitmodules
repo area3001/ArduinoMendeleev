@@ -1,0 +1,6 @@
+[submodule "lib/LXSAMD21DMX"]
+	path = lib/LXSAMD21DMX
+	url = https://github.com/claudeheintz/LXSAMD21DMX.git
+[submodule "lib/Adafruit_MCP23017"]
+	path = lib/Adafruit_MCP23017
+	url = https://github.com/adafruit/Adafruit-MCP23017-Arduino-Library.git
