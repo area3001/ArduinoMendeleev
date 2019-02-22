@@ -38,9 +38,9 @@
 
 #define PACKET_DEST_OFFSET    (PACKET_PREAMBLE_SIZE)
 #define PACKET_SRC_OFFSET     (PACKET_DEST_OFFSET + PACKET_ADDR_SIZE)
-#define PACKET_CMD_OFFSET     (PACKET_SRC_OFFSET + PACKET_ADDR_SIZE)
-#define PACKET_SEQNR_OFFSET   (PACKET_CMD_OFFSET + PACKET_CMD_SIZE)
-#define PACKET_LEN_OFFSET     (PACKET_SEQNR_OFFSET + PACKET_SEQNR_SIZE)
+#define PACKET_SEQNR_OFFSET   (PACKET_SRC_OFFSET + PACKET_ADDR_SIZE)
+#define PACKET_CMD_OFFSET     (PACKET_SEQNR_OFFSET + PACKET_SEQNR_SIZE)
+#define PACKET_LEN_OFFSET     (PACKET_CMD_OFFSET + PACKET_CMD_SIZE)
 #define PACKET_DATA_OFFSET    (PACKET_LEN_OFFSET + PACKET_LEN_SIZE)
 #define PACKET_OVERHEAD       (PACKET_PREAMBLE_SIZE + (2*PACKET_ADDR_SIZE) + PACKET_SEQNR_SIZE + PACKET_CMD_SIZE + PACKET_LEN_SIZE + PACKET_CHKSM_SIZE)
 
@@ -51,7 +51,8 @@ enum Commands {
     COMMAND_SET_COLOR = 0x00,
     COMMAND_SET_MODE = 0x01,
     COMMAND_OTA = 0x02,
-    COMMAND_MAX = 0x03
+    COMMAND_GET_VERSION = 0x03,
+    COMMAND_MAX = 0x04
 };
 
 /*
@@ -217,7 +218,7 @@ enum PeriodicElement {
     ELEMENT_MAX = 119
 };
 
-typedef bool (*CommandCallback)(uint8_t *data, uint8_t len);
+typedef bool (*CommandCallback)(uint8_t *data, uint16_t *len);
 
 class MendeleevClass
 {
@@ -383,8 +384,8 @@ private:
     Adafruit_MCP23017 _mcp;
     uint8_t _getAddress();
     uint8_t _getConfig();
-    void _parse(uint8_t *buf, uint8_t len);
-    uint8_t _calculate_checksum(uint8_t *buf, uint8_t len);
+    void _parse(uint8_t *buf, uint16_t* len);
+    uint16_t _crc16(uint8_t *buf, uint16_t len);
 };
 
 extern MendeleevClass Mendeleev;
