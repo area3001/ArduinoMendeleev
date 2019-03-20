@@ -200,6 +200,15 @@ void MendeleevClass::init()
     _mcp.pinMode(DIPSW6_PIN, INPUT);
     _mcp.pinMode(DIPSW7_PIN, INPUT);
 
+    _mcp.pullUp(DIPSW0_PIN, HIGH);
+    _mcp.pullUp(DIPSW1_PIN, HIGH);
+    _mcp.pullUp(DIPSW2_PIN, HIGH);
+    _mcp.pullUp(DIPSW3_PIN, HIGH);
+    _mcp.pullUp(DIPSW4_PIN, HIGH);
+    _mcp.pullUp(DIPSW5_PIN, HIGH);
+    _mcp.pullUp(DIPSW6_PIN, HIGH);
+    _mcp.pullUp(DIPSW7_PIN, HIGH);
+
     _mcp.pinMode(OUTPUT0_PIN, OUTPUT);
     _mcp.pinMode(OUTPUT1_PIN, OUTPUT);
     _mcp.pinMode(OUTPUT2_PIN, OUTPUT);
@@ -530,7 +539,7 @@ void MendeleevClass::setOutput(enum Output output, uint8_t value)
 /* ----------------------------------------------------------------------- */
 uint8_t MendeleevClass::_getAddress()
 {
-#ifndef DEBUG
+// #ifndef DEBUG
     uint8_t addr = 0;
     uint8_t value = 0;
     value = _mcp.digitalRead(DIPSW0_PIN);
@@ -548,9 +557,9 @@ uint8_t MendeleevClass::_getAddress()
     value = _mcp.digitalRead(DIPSW6_PIN);
     addr |= value << 6;
     return addr;
-#else
-    return 2;
-#endif
+// #else
+//     return 2;
+// #endif
 }
 
 uint8_t MendeleevClass::_getConfig()
