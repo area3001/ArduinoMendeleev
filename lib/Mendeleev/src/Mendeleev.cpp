@@ -222,6 +222,7 @@ void MendeleevClass::init()
     // Read our address
     _addr = _getAddress();
     DEBUG_PRINT("I am element "); DEBUG_PRINTDEC(_addr); DEBUG_PRINTLN(".");
+    DEBUG_PRINT("Config pin is "); DEBUG_PRINTDEC(_getConfig()); DEBUG_PRINTLN(".");
 }
 
 /* ----------------------------------------------------------------------- */
