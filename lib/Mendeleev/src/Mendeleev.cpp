@@ -435,10 +435,6 @@ void MendeleevClass::tick()
             buffPos = 0;
             continue;
         }
-        DEBUG_PRINTDEC(buffPos);
-        DEBUG_PRINT(" : ");
-        DEBUG_PRINTHEX(i);
-        DEBUG_PRINTLN("");
         _dataBuffer[buffPos++] = i;
     }
 
