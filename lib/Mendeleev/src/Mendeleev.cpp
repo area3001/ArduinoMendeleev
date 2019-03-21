@@ -174,9 +174,11 @@ void MendeleevClass::init()
     pinMode(INPUT1_PIN, INPUT);
     pinMode(INPUT2_PIN, INPUT);
     pinMode(INPUT3_PIN, INPUT);
+    // TODO: activate pullups?
 
     // Set up Proximity pin
     pinMode(PROX_PIN, INPUT);
+    // TODO: activate pullup?
 
     // Set up LED pins
     pinMode(LED_R_PIN,   OUTPUT);
@@ -361,10 +363,11 @@ uint16_t MendeleevClass::_crc16(uint8_t *buffer, uint16_t buffer_length)
 void MendeleevClass::_parse(uint8_t *buf, uint16_t *len)
 {
     if (*len < PACKET_OVERHEAD) {
-        // The packet is not complete yet
+        /* The packet is not complete yet */
         return;
     }
 
+    /* Check if packet is for me */
     if (buf[PACKET_DEST_OFFSET] != _addr && buf[PACKET_DEST_OFFSET] != BROADCAST_ADDR) {
         DEBUG_PRINT("Destination is ");
         DEBUG_PRINTHEX(buf[PACKET_DEST_OFFSET]);
@@ -375,14 +378,14 @@ void MendeleevClass::_parse(uint8_t *buf, uint16_t *len)
         return;
     }
 
-    bool is_broadcast = (buf[PACKET_DEST_OFFSET] == BROADCAST_ADDR);
-
+    /* Check the command field */
     if (buf[PACKET_CMD_OFFSET] >= COMMAND_MAX) {
         DEBUG_PRINTLN("Invalid command");
         *len = 0;
         return;
     }
 
+    /* Check if we have a command handler for this command */
     enum Commands cmd = (enum Commands)buf[PACKET_CMD_OFFSET];
 
     if (_callbacks[cmd] == NULL) {
@@ -391,13 +394,15 @@ void MendeleevClass::_parse(uint8_t *buf, uint16_t *len)
         return;
     }
 
+    /* Check if we have the full payload */
     uint16_t datalen = ((buf[PACKET_LEN_OFFSET] << 8) | buf[PACKET_LEN_OFFSET + 1]);
 
     if ((datalen + PACKET_OVERHEAD) > *len) {
-        // Not everything received yet
+        /* Not everything received yet */
         return;
     }
 
+    /* Check the checksum */
     uint16_t cksm_received = ((buf[PACKET_DATA_OFFSET + datalen] << 8) | buf[PACKET_DATA_OFFSET + datalen + 1]);
     uint16_t cksm_calculated = _crc16(buf + PACKET_DEST_OFFSET, PACKET_DATA_OFFSET + datalen - PACKET_PREAMBLE_SIZE);
 
@@ -411,10 +416,12 @@ void MendeleevClass::_parse(uint8_t *buf, uint16_t *len)
         return;
     }
 
-    // Run callback
+    /* Run callback */
     bool cb_success = (*_callbacks[cmd])(buf + PACKET_DATA_OFFSET, &datalen);
 
-    // Send response if necessary
+    /* Send response if necessary */
+    bool is_broadcast = (buf[PACKET_DEST_OFFSET] == BROADCAST_ADDR);
+
     if (!is_broadcast) {
         buf[PACKET_DEST_OFFSET] = CONTROLLER_ADDR;
         buf[PACKET_SRC_OFFSET] = _addr;
@@ -438,7 +445,7 @@ void MendeleevClass::tick()
     int i;
     static uint16_t buffPos = 0;
 
-    // If the buffer is empty, wait until the data arrives.
+    /* If the buffer is empty, wait until the data arrives. */
     while (RS485Serial.available() > 0) {
         i = RS485Serial.read();
         if ((buffPos < PACKET_PREAMBLE_SIZE) && (i != PACKET_PREAMBLE)) {
@@ -515,6 +522,31 @@ uint8_t MendeleevClass::getInput(enum Input input)
     }
 }
 
+void MendeleevClass::attachInputInterrupt(enum Input input, voidFuncPtr ISR, int mode)
+{
+    switch(input) {
+        case INPUT_0:
+        attachInterrupt(digitalPinToInterrupt(INPUT0_PIN), ISR, mode);
+        break;
+        case INPUT_1:
+        attachInterrupt(digitalPinToInterrupt(INPUT1_PIN), ISR, mode);
+        break;
+        case INPUT_2:
+        attachInterrupt(digitalPinToInterrupt(INPUT2_PIN), ISR, mode);
+        break;
+        case INPUT_3:
+        attachInterrupt(digitalPinToInterrupt(INPUT3_PIN), ISR, mode);
+        break;
+        default:
+        DEBUG_PRINTLN("Unknown input");
+    }
+}
+
+void MendeleevClass::attachProximityInterrupt(voidFuncPtr ISR, int mode)
+{
+    attachInterrupt(digitalPinToInterrupt(PROX_PIN), ISR, mode);
+}
+
 void MendeleevClass::setOutput(enum Output output, uint8_t value)
 {
     switch(output) {
@@ -540,7 +572,6 @@ void MendeleevClass::setOutput(enum Output output, uint8_t value)
 /* ----------------------------------------------------------------------- */
 uint8_t MendeleevClass::_getAddress()
 {
-// #ifndef DEBUG
     uint8_t addr = 0;
     uint8_t value = 0;
     value = _mcp.digitalRead(DIPSW0_PIN);
@@ -558,9 +589,6 @@ uint8_t MendeleevClass::_getAddress()
     value = _mcp.digitalRead(DIPSW6_PIN);
     addr |= value << 6;
     return addr;
-// #else
-//     return 2;
-// #endif
 }
 
 uint8_t MendeleevClass::_getConfig()

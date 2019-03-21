@@ -5,8 +5,12 @@
 #define VERSION "Unknown version"
 #endif
 
+/* Counter for OTA */
 int read = 0;
 
+/* ----------------------------------------------------------------------- */
+/* RS485 command callbacks                                                 */
+/* ----------------------------------------------------------------------- */
 bool setOutputCallback(uint8_t *data, uint16_t *len)
 {
     SerialUSB.println("set output callback");
@@ -30,12 +34,15 @@ bool setColorCallback(uint8_t *data, uint16_t *len)
     SerialUSB.println("set color callback");
     *len = 0;
 
-    if (data[0] == 0xFF) {
-        return true;
-    }
-    else {
+    if (*len != 7) {
         return false;
     }
+
+    Mendeleev.setColor(data[0], data[1], data[2], data[3], data[4]);
+    Mendeleev.setUv(data[5]);
+    Mendeleev.setTxt(data[6]);
+
+    return true;
 }
 
 bool setModeCallback(uint8_t *data, uint16_t *len)
@@ -105,25 +112,62 @@ bool getVersionCallback(uint8_t *data, uint16_t *len)
     return true;
 }
 
+/* ----------------------------------------------------------------------- */
+/* Input interrupt handlers                                                */
+/* ----------------------------------------------------------------------- */
+void input0Handler()
+{
+    SerialUSB.println("Input 0 interrupt handler");
+}
+
+void input1Handler()
+{
+    SerialUSB.println("Input 1 interrupt handler");
+}
+
+void input2Handler()
+{
+    SerialUSB.println("Input 2 interrupt handler");
+}
+
+void input3Handler()
+{
+    SerialUSB.println("Input 3 interrupt handler");
+}
+
+void proximityHandler()
+{
+    SerialUSB.println("Proximity interrupt handler");
+}
+
 void setup() {
 #ifdef DEBUG
     while (!SerialUSB);
 #endif
     SerialUSB.begin(115200);
-    SerialUSB.print("Version ");
-    SerialUSB.println(VERSION);
+    SerialUSB.println("Hello Mendeleev!");
+    SerialUSB.print("Version "); SerialUSB.println(VERSION);
 
-    // Init Mendeleev board
+    /* Initialize Mendeleev board */
     Mendeleev.init();
     Mendeleev.RS485Begin(38400);
 
+    /* Turn off TXT leds (they are default on when powering the board) */
+    Mendeleev.setTxt(0);
+
+    /* Register handler functions for RS485 commands */
     Mendeleev.registerCallback(COMMAND_SET_COLOR, &setColorCallback);
     Mendeleev.registerCallback(COMMAND_SET_MODE, &setModeCallback);
     Mendeleev.registerCallback(COMMAND_OTA, &otaCallback);
     Mendeleev.registerCallback(COMMAND_GET_VERSION, &getVersionCallback);
     Mendeleev.registerCallback(COMMAND_SET_OUTPUT, &setOutputCallback);
 
-    Mendeleev.setTxt(0);
+    /* Attach interrupt handlers to the inputs */
+    Mendeleev.attachInputInterrupt(INPUT_0, input0Handler, CHANGE);
+    Mendeleev.attachInputInterrupt(INPUT_1, input1Handler, CHANGE);
+    Mendeleev.attachInputInterrupt(INPUT_2, input2Handler, CHANGE);
+    Mendeleev.attachInputInterrupt(INPUT_3, input3Handler, CHANGE);
+    Mendeleev.attachProximityInterrupt(proximityHandler, CHANGE);
 }
 
 void loop() {

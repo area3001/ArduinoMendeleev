@@ -371,6 +371,10 @@ public:
     /* ----------------------------------------------------------------------- */
     uint8_t getInput(enum Input input);
 
+    void attachInputInterrupt(enum Input input, voidFuncPtr ISR, int mode);
+
+    void attachProximityInterrupt(voidFuncPtr ISR, int mode);
+
     void setOutput(enum Output output, uint8_t value);
 
     // heartbeat
