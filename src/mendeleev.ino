@@ -24,9 +24,9 @@ int read = 0;
 bool setOutputCallback(uint8_t *data, uint16_t *len)
 {
     SerialUSB.println("set output callback");
-    *len = 0;
 
     if (*len != 2) {
+        *len = 0;
         return false;
     }
 
@@ -43,15 +43,17 @@ bool setOutputCallback(uint8_t *data, uint16_t *len)
         Mendeleev.setOutput(OUTPUT_3, bitRead(data[1], 3));
     }
 
+    *len = 0;
     return true;
 }
 
 bool setColorCallback(uint8_t *data, uint16_t *len)
 {
     SerialUSB.println("set color callback");
-    *len = 0;
+
 
     if (*len != 7) {
+        *len = 0;
         return false;
     }
 
@@ -59,6 +61,7 @@ bool setColorCallback(uint8_t *data, uint16_t *len)
     Mendeleev.setUv(data[5]);
     Mendeleev.setTxt(data[6]);
 
+    *len = 0;
     return true;
 }
 
