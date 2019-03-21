@@ -1,3 +1,13 @@
+/*
+ * mendeleev.ino
+ * Company: Area 3001
+ * Web: https://area3001.com
+ * Description: Main application for Mendeleev board
+ * Version: 1.0.0
+ * Date: 21/3/2019
+ * Author: Bert Outtier <outtierbert@gmail.com>
+ */
+
 #include <Mendeleev.h>
 #include <InternalStorage.h>
 
@@ -147,6 +157,9 @@ void proximityHandler()
     SerialUSB.println("Proximity interrupt handler");
 }
 
+/* ----------------------------------------------------------------------- */
+/* Setup                                                                   */
+/* ----------------------------------------------------------------------- */
 void setup() {
 #ifdef DEBUG
     /* Wait until the debug terminal is connected */
@@ -178,6 +191,9 @@ void setup() {
     Mendeleev.attachProximityInterrupt(proximityHandler, CHANGE);
 }
 
+/* ----------------------------------------------------------------------- */
+/* Main loop                                                               */
+/* ----------------------------------------------------------------------- */
 void loop() {
     Mendeleev.tick();
 }
