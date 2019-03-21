@@ -35,7 +35,6 @@
  * |               |  address         |  address    |   number      |              |   length  |           |               |
  * -------------------------------------------------------------------------------------------------------------------------
  */
-#define CONTROLLER_ADDR       (0x00)
 #define BROADCAST_ADDR        (0xFF)
 #define PACKET_PREAMBLE       (0xA5)
 
@@ -470,10 +469,8 @@ void MendeleevClass::_parse(uint8_t *buf, uint16_t *len)
     bool is_broadcast = (buf[PACKET_DEST_OFFSET] == BROADCAST_ADDR);
 
     if (!is_broadcast) {
-        buf[PACKET_DEST_OFFSET] = CONTROLLER_ADDR;
+        buf[PACKET_DEST_OFFSET] = buf[PACKET_SRC_OFFSET];
         buf[PACKET_SRC_OFFSET] = _addr;
-        buf[PACKET_LEN_OFFSET] = 0x00;
-        buf[PACKET_LEN_OFFSET + 1] = 0x00;
         if (!cb_success) {
             buf[PACKET_CMD_OFFSET] = ~buf[PACKET_CMD_OFFSET];
         }
