@@ -14,6 +14,12 @@ int read = 0;
 bool setOutputCallback(uint8_t *data, uint16_t *len)
 {
     SerialUSB.println("set output callback");
+    *len = 0;
+
+    if (*len != 2) {
+        return false;
+    }
+
     if (bitRead(data[0], 0)) {
         Mendeleev.setOutput(OUTPUT_0, bitRead(data[1], 0));
     }
@@ -26,7 +32,7 @@ bool setOutputCallback(uint8_t *data, uint16_t *len)
     if (bitRead(data[0], 3)) {
         Mendeleev.setOutput(OUTPUT_3, bitRead(data[1], 3));
     }
-    *len = 0;
+
     return true;
 }
 
