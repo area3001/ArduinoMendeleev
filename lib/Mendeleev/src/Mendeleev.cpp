@@ -2,10 +2,12 @@
  * Mendeleev.cpp
  * Company: Area 3001
  * Web: https://area3001.com
- * Description: Library for Meneleev board
+ * Description: Library for Mendeleev board
  * Version: 1.0.0
  * Date: 10/2/2019
  * Author: Bert Outtier <outtierbert@gmail.com>
+ *
+ * Based on https://github.com/claudeheintz/LXSAMD21DMX.git
  */
 
 #include <SPI.h>
