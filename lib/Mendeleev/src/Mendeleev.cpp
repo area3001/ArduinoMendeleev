@@ -1,15 +1,16 @@
-// Mendeleev.cpp
-// Company: Area 3001
-// Web: https://area3001.com
-// Description:
-//		Library for Meneleev board
-// Version: 1.0.0
-// Date: 10/2/2019
-// Author: Bert Outtier <outtierbert@gmail.com>
+/*
+ * Mendeleev.cpp
+ * Company: Area 3001
+ * Web: https://area3001.com
+ * Description: Library for Meneleev board
+ * Version: 1.0.0
+ * Date: 10/2/2019
+ * Author: Bert Outtier <outtierbert@gmail.com>
+ */
 
 #include <SPI.h>
 #include "Mendeleev.h"
-#include "wiring_private.h"
+#include "wiring_private.h" // TODO: do we need this?
 
 #ifdef DEBUG
  #define DEBUG_PRINTLN(x)  SerialUSB.println(x)
@@ -23,43 +24,43 @@
  #define DEBUG_PRINTHEX(x)
 #endif
 
-// RS485 Pins
-#define RS485_DIR_PIN PIN_A5  // PB02
-#define RS485Serial   Serial  // Sercom5 (uses UART.RXD/PB23, UART.TXD/PB22)
+/* RS485 Pins */
+#define RS485_DIR_PIN PIN_A5  /* PB02 */
+#define RS485Serial   Serial  /* Sercom5 (uses UART.RXD/PB23, UART.TXD/PB22) */
 #define RS485Transmit HIGH
 #define RS485Receive  LOW
 
-// SPI CS pins
-#define PIN_SPI_CS0 (2u)            // PA14
-#define PIN_SPI_CS1 (7u)            // PA21
+/* SPI CS pins */
+#define PIN_SPI_CS0 (2u)            /* PA14 */
+#define PIN_SPI_CS1 (7u)            /* PA21 */
 
-// Motors
-#define M1CTRL0_PIN PIN_SERIAL1_RX  // PA11 SERCOM0/PAD[3]
-#define M1CTRL1_PIN (9u)            // PA07 TCC1/WO[1]
-#define M1CTRL2_PIN (8u)            // PA06 TCC1/WO[0]
-#define M2CTRL0_PIN PIN_SERIAL1_TX  // PA10 SERCOM0/PAD[2]
-#define M2CTRL1_PIN (3u)            // PA09 TCC0/WO[1]
-#define M2CTRL2_PIN (4u)            // PA08 TCC0/WO[0]
+/* Motors */
+#define M1CTRL0_PIN PIN_SERIAL1_RX  /* PA11 SERCOM0/PAD[3] */
+#define M1CTRL1_PIN (9u)            /* PA07 TCC1/WO[1] */
+#define M1CTRL2_PIN (8u)            /* PA06 TCC1/WO[0] */
+#define M2CTRL0_PIN PIN_SERIAL1_TX  /* PA10 SERCOM0/PAD[2] */
+#define M2CTRL1_PIN (3u)            /* PA09 TCC0/WO[1] */
+#define M2CTRL2_PIN (4u)            /* PA08 TCC0/WO[0] */
 
-// Inputs
-#define INPUT0_PIN  PIN_A1          // PB08
-#define INPUT1_PIN  PIN_A2          // PB09
-#define INPUT2_PIN  PIN_A0          // PA02
-#define INPUT3_PIN  PIN_A3          // PA04
+/* Inputs */
+#define INPUT0_PIN  PIN_A1          /* PB08 */
+#define INPUT1_PIN  PIN_A2          /* PB09 */
+#define INPUT2_PIN  PIN_A0          /* PA02 */
+#define INPUT3_PIN  PIN_A3          /* PA04 */
 
-// Proximity
-#define PROX_PIN    PIN_A4          // PA05
+/* Proximity */
+#define PROX_PIN    PIN_A4          /* PA05 */
 
-// LED pins
-#define LED_R_PIN   (5u)            // PA15 TC3/WO[1]
-#define LED_G_PIN   (11u)           // PA16 TCC2/WO[0]
-#define LED_B_PIN   PIN_LED_13      // PA17 TCC2/WO[1]
-#define LED_A_PIN   (10u)           // PA18 TC3/WO[0]
-#define LED_W_PIN   (12u)           // PA19 TCC0/WO[3]
-#define LED_UV_PIN  (6u)            // PA20 TCC0/WO[6]
-#define LED_TXT_PIN PIN_ATN         // PA13 TCC2/WO[1]
+/* LED pins */
+#define LED_R_PIN   (5u)            /* PA15 TC3/WO[1] */
+#define LED_G_PIN   (11u)           /* PA16 TCC2/WO[0] */
+#define LED_B_PIN   PIN_LED_13      /* PA17 TCC2/WO[1] */
+#define LED_A_PIN   (10u)           /* PA18 TC3/WO[0] */
+#define LED_W_PIN   (12u)           /* PA19 TCC0/WO[3] */
+#define LED_UV_PIN  (6u)            /* PA20 TCC0/WO[6] */
+#define LED_TXT_PIN PIN_ATN         /* PA13 TCC2/WO[1] */
 
-// Dip switch pins (connected to MCP23017)
+/* Dip switch pins (connected to MCP23017) */
 #define DIPSW0_PIN  (0u)
 #define DIPSW1_PIN  (1u)
 #define DIPSW2_PIN  (2u)
@@ -69,13 +70,13 @@
 #define DIPSW6_PIN  (6u)
 #define DIPSW7_PIN  (7u)
 
-// Output pins (connected to MCP23017)
+/* Output pins (connected to MCP23017) */
 #define OUTPUT0_PIN (8u)
 #define OUTPUT1_PIN (9u)
 #define OUTPUT2_PIN (10u)
 #define OUTPUT3_PIN (11u)
 
-// Motor type pins (connected to MCP23017)
+/* Motor type pins (connected to MCP23017) */
 #define M1TYPE0_PIN (12u)
 #define M1TYPE1_PIN (13u)
 #define M2TYPE0_PIN (14u)
@@ -145,54 +146,57 @@ MendeleevClass Mendeleev;
 
 void MendeleevClass::init()
 {
-    // Set up RS485 pins
+
+    /* Set up RS485 pins */
     pinMode(RS485_DIR_PIN, OUTPUT);
     digitalWrite(RS485_DIR_PIN, RS485Receive);
 
-    // Set up SPI CS pins
+    /* Set up SPI CS pins */
     // Do not use SS as slave select as it is INPUT1_PIN in Mendeleev.
     // Use the following slave selects:
-    pinMode(PIN_SPI_CS0, OUTPUT);
-    digitalWrite(PIN_SPI_CS0, HIGH);
-    pinMode(PIN_SPI_CS1, OUTPUT);
-    digitalWrite(PIN_SPI_CS1, HIGH);
-    SPI.begin();
+    // pinMode(PIN_SPI_CS0, OUTPUT);
+    // digitalWrite(PIN_SPI_CS0, HIGH);
+    // pinMode(PIN_SPI_CS1, OUTPUT);
+    // digitalWrite(PIN_SPI_CS1, HIGH);
+    // SPI.begin();
 
-    // Set up motor control pins
-    pinPeripheral(M1CTRL0_PIN, PIO_DIGITAL);
-    pinPeripheral(M2CTRL0_PIN, PIO_DIGITAL);
+    /* Set up motor control pins */
+    // pinPeripheral(M1CTRL0_PIN, PIO_DIGITAL);
+    // pinPeripheral(M2CTRL0_PIN, PIO_DIGITAL);
 
-    pinMode(M1CTRL0_PIN, OUTPUT);
-    pinMode(M1CTRL1_PIN, OUTPUT);
-    pinMode(M1CTRL2_PIN, OUTPUT);
-    pinMode(M2CTRL0_PIN, OUTPUT);
-    pinMode(M2CTRL1_PIN, OUTPUT);
-    pinMode(M2CTRL2_PIN, OUTPUT);
+    // pinMode(M1CTRL0_PIN, OUTPUT);
+    // pinMode(M1CTRL1_PIN, OUTPUT);
+    // pinMode(M1CTRL2_PIN, OUTPUT);
+    // pinMode(M2CTRL0_PIN, OUTPUT);
+    // pinMode(M2CTRL1_PIN, OUTPUT);
+    // pinMode(M2CTRL2_PIN, OUTPUT);
 
-    // Set up Input pins
+    /* Set up Input pins */
     pinMode(INPUT0_PIN, INPUT);
     pinMode(INPUT1_PIN, INPUT);
     pinMode(INPUT2_PIN, INPUT);
     pinMode(INPUT3_PIN, INPUT);
     // TODO: activate pullups?
 
-    // Set up Proximity pin
+    /* Set up Proximity pin */
     pinMode(PROX_PIN, INPUT);
     // TODO: activate pullup?
 
-    // Set up LED pins
-    pinMode(LED_R_PIN,   OUTPUT);
-    pinMode(LED_G_PIN,   OUTPUT);
-    pinMode(LED_B_PIN,   OUTPUT);
-    pinMode(LED_A_PIN,   OUTPUT);
-    pinMode(LED_W_PIN,   OUTPUT);
-    pinMode(LED_UV_PIN,  OUTPUT);
-    pinMode(LED_TXT_PIN, OUTPUT);
+    /* Set up LED pins */
+    // analogWriteResolution(8);
+    // pinMode(LED_R_PIN,   OUTPUT);
+    // pinMode(LED_G_PIN,   OUTPUT);
+    // pinMode(LED_B_PIN,   OUTPUT);
+    // pinMode(LED_A_PIN,   OUTPUT);
+    // pinMode(LED_W_PIN,   OUTPUT);
+    // pinMode(LED_UV_PIN,  OUTPUT);
+    // pinMode(LED_TXT_PIN, OUTPUT);
 
-    // Set up MCP23017
+
+    /* Set up MCP23017 */
     _mcp.begin();
 
-    // Setup pins of MCP23017
+    /* Setup pins of MCP23017 */
     _mcp.pinMode(DIPSW0_PIN, INPUT);
     _mcp.pinMode(DIPSW1_PIN, INPUT);
     _mcp.pinMode(DIPSW2_PIN, INPUT);
@@ -221,7 +225,7 @@ void MendeleevClass::init()
     _mcp.pinMode(M2TYPE0_PIN, INPUT);
     _mcp.pinMode(M2TYPE1_PIN, INPUT);
 
-    // Read our address
+    /* Read our address */
     _addr = _getAddress();
     DEBUG_PRINT("I am element "); DEBUG_PRINTDEC(_addr); DEBUG_PRINTLN(".");
     DEBUG_PRINT("Config pin is "); DEBUG_PRINTDEC(_getConfig()); DEBUG_PRINTLN(".");

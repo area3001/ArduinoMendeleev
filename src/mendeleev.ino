@@ -142,6 +142,7 @@ void proximityHandler()
 
 void setup() {
 #ifdef DEBUG
+    /* Wait until the debug terminal is connected */
     while (!SerialUSB);
 #endif
     SerialUSB.begin(115200);
