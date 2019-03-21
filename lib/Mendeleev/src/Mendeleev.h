@@ -1,11 +1,13 @@
-// Mendeleev.cpp
-// Company: Area 3001
-// Web: https://area3001.com
-// Description:
-//		Library for Meneleev board
-// Version: 1.1.0
-// Date: 10/2/2019
-// Author: Bert Outtier <outtierbert@gmail.com>
+/*
+ * Mendeleev.h
+ * Company: Area 3001
+ * Web: https://area3001.com
+ * Description:
+ * 		Library for Mendeleev board
+ * Version: 1.0.0
+ * Date: 10/2/2019
+ * Author: Bert Outtier <outtierbert@gmail.com>
+ */
 
 #ifndef _MENDELEEV_H
 #define _MENDELEEV_H
@@ -14,35 +16,7 @@
 #include <HardwareSerial.h>
 #include <Adafruit_MCP23017.h>
 
-/* RS485 protocol */
-#define DIRECTION_PIN ()
-#define START_BYTE (0xFF)
-#define CONTROLLER_ADDR (0x00)
-#define BROADCAST_ADDR (0xFF)
 #define BUFF_MAX (0xFF)
-
-/*
- * packet layout:
- * ---------------------------------------------------------------------------------------------------------------------------------------
- * | Preamble (8B) | Destination (1B) | Source (1B) | Sequence number (2B) | Command (1B) | Data length (2B) | Data (xB) | Checksum (2B) |
- * ---------------------------------------------------------------------------------------------------------------------------------------
- */
-#define PACKET_PREAMBLE       (0xA5)
-
-#define PACKET_PREAMBLE_SIZE  (8)
-#define PACKET_ADDR_SIZE      (1)
-#define PACKET_SEQNR_SIZE     (2)
-#define PACKET_CMD_SIZE       (1)
-#define PACKET_LEN_SIZE       (2)
-#define PACKET_CHKSM_SIZE     (2)
-
-#define PACKET_DEST_OFFSET    (PACKET_PREAMBLE_SIZE)
-#define PACKET_SRC_OFFSET     (PACKET_DEST_OFFSET + PACKET_ADDR_SIZE)
-#define PACKET_SEQNR_OFFSET   (PACKET_SRC_OFFSET + PACKET_ADDR_SIZE)
-#define PACKET_CMD_OFFSET     (PACKET_SEQNR_OFFSET + PACKET_SEQNR_SIZE)
-#define PACKET_LEN_OFFSET     (PACKET_CMD_OFFSET + PACKET_CMD_SIZE)
-#define PACKET_DATA_OFFSET    (PACKET_LEN_OFFSET + PACKET_LEN_SIZE)
-#define PACKET_OVERHEAD       (PACKET_PREAMBLE_SIZE + (2*PACKET_ADDR_SIZE) + PACKET_SEQNR_SIZE + PACKET_CMD_SIZE + PACKET_LEN_SIZE + PACKET_CHKSM_SIZE)
 
 /*
  * Commands

@@ -14,6 +14,7 @@
 #include "Mendeleev.h"
 #include "wiring_private.h" // TODO: do we need this?
 
+/* Debug defines */
 #ifdef DEBUG
  #define DEBUG_PRINTLN(x)  SerialUSB.println(x)
  #define DEBUG_PRINT(x)    SerialUSB.print(x)
@@ -25,6 +26,33 @@
  #define DEBUG_PRINTDEC(x)
  #define DEBUG_PRINTHEX(x)
 #endif
+
+/* RS485 protocol defines
+ *
+ * packet layout:
+ * -------------------------------------------------------------------------------------------------------------------------
+ * | Preamble (8B) | Destination (1B) | Source (1B) | Sequence (2B) | Command (1B) | Data (2B) | Data (xB) | Checksum (2B) |
+ * |               |  address         |  address    |   number      |              |   length  |           |               |
+ * -------------------------------------------------------------------------------------------------------------------------
+ */
+#define CONTROLLER_ADDR       (0x00)
+#define BROADCAST_ADDR        (0xFF)
+#define PACKET_PREAMBLE       (0xA5)
+
+#define PACKET_PREAMBLE_SIZE  (8u)
+#define PACKET_ADDR_SIZE      (1u)
+#define PACKET_SEQNR_SIZE     (2u)
+#define PACKET_CMD_SIZE       (1u)
+#define PACKET_LEN_SIZE       (2u)
+#define PACKET_CHKSM_SIZE     (2u)
+
+#define PACKET_DEST_OFFSET    (PACKET_PREAMBLE_SIZE)
+#define PACKET_SRC_OFFSET     (PACKET_DEST_OFFSET + PACKET_ADDR_SIZE)
+#define PACKET_SEQNR_OFFSET   (PACKET_SRC_OFFSET + PACKET_ADDR_SIZE)
+#define PACKET_CMD_OFFSET     (PACKET_SEQNR_OFFSET + PACKET_SEQNR_SIZE)
+#define PACKET_LEN_OFFSET     (PACKET_CMD_OFFSET + PACKET_CMD_SIZE)
+#define PACKET_DATA_OFFSET    (PACKET_LEN_OFFSET + PACKET_LEN_SIZE)
+#define PACKET_OVERHEAD       (PACKET_PREAMBLE_SIZE + (2 * PACKET_ADDR_SIZE) + PACKET_SEQNR_SIZE + PACKET_CMD_SIZE + PACKET_LEN_SIZE + PACKET_CHKSM_SIZE)
 
 /* RS485 Pins */
 #define RS485_DIR_PIN PIN_A5  /* PB02 */
@@ -237,13 +265,13 @@ void MendeleevClass::init()
     DEBUG_PRINT("I am element "); DEBUG_PRINTDEC(_addr); DEBUG_PRINTLN(".");
 
     /* Read the config pin */
-    DEBUG_PRINT("Config pin is "); DEBUG_PRINTDEC(_getConfig()); DEBUG_PRINTLN(".");
+    DEBUG_PRINT("Config pin is: "); DEBUG_PRINTDEC(_getConfig()); DEBUG_PRINTLN(".");
 
     /* Read the types of the motor slots */
     _slot1Type = getMotorType(MOTOR_1);
     _slot2Type = getMotorType(MOTOR_2);
-    DEBUG_PRINT("Motor type slot 1 "); DEBUG_PRINTDEC(_slot1Type); DEBUG_PRINTLN(".");
-    DEBUG_PRINT("Motor type slot 2 "); DEBUG_PRINTDEC(_slot2Type); DEBUG_PRINTLN(".");
+    DEBUG_PRINT("Motor type slot 1: "); DEBUG_PRINTDEC(_slot1Type); DEBUG_PRINTLN(".");
+    DEBUG_PRINT("Motor type slot 2: "); DEBUG_PRINTDEC(_slot2Type); DEBUG_PRINTLN(".");
 }
 
 /* ----------------------------------------------------------------------- */
