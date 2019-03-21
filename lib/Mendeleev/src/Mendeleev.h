@@ -23,9 +23,9 @@
 
 /*
  * packet layout:
- * ----------------------------------------------------------------------------------------------------------------
- * | Preamble (8B) | Destination (1B) | Source (1B) | Sequence number (2B) | Command (1B) | Data lenght (2B) | Data (xB) | Checksum (2B) |
- * ----------------------------------------------------------------------------------------------------------------
+ * ---------------------------------------------------------------------------------------------------------------------------------------
+ * | Preamble (8B) | Destination (1B) | Source (1B) | Sequence number (2B) | Command (1B) | Data length (2B) | Data (xB) | Checksum (2B) |
+ * ---------------------------------------------------------------------------------------------------------------------------------------
  */
 #define PACKET_PREAMBLE       (0xA5)
 
@@ -88,7 +88,7 @@ enum Motors {
  * motor types
  */
 enum MotorType {
-    MOTORTYPE_0,
+    MOTORTYPE_0, /* No motor board installed */
     MOTORTYPE_1,
     MOTORTYPE_2,
     MOTORTYPE_3
@@ -382,6 +382,8 @@ public:
 
 protected:
     uint8_t _addr; ///< the address of this board
+    enum MotorType _slot1Type;
+    enum MotorType _slot2Type;
     CommandCallback _callbacks[COMMAND_MAX]; ///< the array of callback functions
 
 private:

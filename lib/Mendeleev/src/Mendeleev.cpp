@@ -227,10 +227,23 @@ void MendeleevClass::init()
     _mcp.pinMode(M2TYPE0_PIN, INPUT);
     _mcp.pinMode(M2TYPE1_PIN, INPUT);
 
+    _mcp.pullUp(M1TYPE0_PIN, HIGH);
+    _mcp.pullUp(M1TYPE1_PIN, HIGH);
+    _mcp.pullUp(M2TYPE0_PIN, HIGH);
+    _mcp.pullUp(M2TYPE1_PIN, HIGH);
+
     /* Read our address */
     _addr = _getAddress();
     DEBUG_PRINT("I am element "); DEBUG_PRINTDEC(_addr); DEBUG_PRINTLN(".");
+
+    /* Read the config pin */
     DEBUG_PRINT("Config pin is "); DEBUG_PRINTDEC(_getConfig()); DEBUG_PRINTLN(".");
+
+    /* Read the types of the motor slots */
+    _slot1Type = getMotorType(MOTOR_1);
+    _slot2Type = getMotorType(MOTOR_2);
+    DEBUG_PRINT("Motor type slot 1 "); DEBUG_PRINTDEC(_slot1Type); DEBUG_PRINTLN(".");
+    DEBUG_PRINT("Motor type slot 2 "); DEBUG_PRINTDEC(_slot2Type); DEBUG_PRINTLN(".");
 }
 
 /* ----------------------------------------------------------------------- */
@@ -502,10 +515,35 @@ void MendeleevClass::setUv(uint8_t value)
 // }
 
 /* ----------------------------------------------------------------------- */
-/* motor methods. */
+/* Motor methods.                                                          */
 /* ----------------------------------------------------------------------- */
 
-// TODO
+enum MotorType MendeleevClass::getMotorType(enum Motors motor)
+{
+    uint8_t type = 0;
+    uint8_t value = 0;
+    switch(motor) {
+        case MOTOR_1: {
+            value = _mcp.digitalRead(M1TYPE0_PIN);
+            type |= value;
+            value = _mcp.digitalRead(M1TYPE1_PIN);
+            type |= value << 1;
+            break;
+        }
+        case MOTOR_2: {
+            value = _mcp.digitalRead(M2TYPE0_PIN);
+            type |= value;
+            value = _mcp.digitalRead(M2TYPE1_PIN);
+            type |= value << 1;
+            break;
+        }
+        default:
+        DEBUG_PRINTLN("Unknown motor slot");
+        return MOTORTYPE_0;
+    }
+
+    return (enum MotorType)type;
+}
 
 /* ----------------------------------------------------------------------- */
 /* input/Output methods. */
