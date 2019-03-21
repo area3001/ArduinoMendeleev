@@ -27,6 +27,7 @@ bool setOutputCallback(uint8_t *data, uint16_t *len)
         Mendeleev.setOutput(OUTPUT_3, bitRead(data[1], 3));
     }
     *len = 0;
+    return true;
 }
 
 bool setColorCallback(uint8_t *data, uint16_t *len)
