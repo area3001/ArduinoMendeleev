@@ -321,17 +321,25 @@ public:
     /* LED methods. */
     /* ----------------------------------------------------------------------- */
     void setColor(uint8_t red, uint8_t green, uint8_t blue);
+    void fadeColor(uint8_t red, uint8_t green, uint8_t blue);
 
     void setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha);
+    void fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha);
 
     void setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white);
+    void fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white);
+
+    void setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white, uint8_t uv, uint8_t txt);
+    void fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white, uint8_t uv, uint8_t txt);
 
     void setTxt(uint8_t value);
+    void fadeTxt(uint8_t value);
 
     void setUv(uint8_t value);
+    void fadeUv(uint8_t value);
 
     // TODO: fade to color functions?
-    // void setColorSpeed(uint8_t speed);
+    // void setFadingSpeed(uint16_t speedTime);
 
     /* ----------------------------------------------------------------------- */
     /* motor methods. */
@@ -363,6 +371,18 @@ protected:
 private:
     uint8_t _dataBuffer[BUFF_MAX];
     Adafruit_MCP23017 _mcp;
+
+    // TODO: use a struct instead of an array to make it more readable?
+    uint16_t _current_colors[7]; /* R, G, B, A, W, UV, TXT */
+    uint16_t _initial_colors[7]; // Used when fading.
+    uint16_t _target_colors[7];  // Used when fading.
+    uint16_t _fading_step;      // Current step of the fading.
+    uint16_t _fading_max_steps; // The total number of steps when fading.
+    uint16_t _fading_step_time; // The number of ms between two variation of color when fading.
+    bool _fading;               // Are we fading now ?
+    unsigned long _last_update; // Last time we did something.
+    void _fade();               // Used internaly to fade
+
     uint8_t _getAddress();
     uint8_t _getConfig();
     void _parse(uint8_t *buf, uint16_t* len);

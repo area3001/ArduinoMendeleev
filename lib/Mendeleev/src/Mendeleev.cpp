@@ -212,7 +212,7 @@ void MendeleevClass::init()
     // TODO: activate pullup?
 
     /* Set up LED pins */
-    // analogWriteResolution(8);
+    analogWriteResolution(12);
     // pinMode(LED_R_PIN,   OUTPUT);
     // pinMode(LED_G_PIN,   OUTPUT);
     // pinMode(LED_B_PIN,   OUTPUT);
@@ -271,6 +271,21 @@ void MendeleevClass::init()
     _slot2Type = getMotorType(MOTOR_2);
     DEBUG_PRINT("Motor type slot 1: "); DEBUG_PRINTDEC(_slot1Type); DEBUG_PRINTLN(".");
     DEBUG_PRINT("Motor type slot 2: "); DEBUG_PRINTDEC(_slot2Type); DEBUG_PRINTLN(".");
+
+    /* Set all LEDs of at boot */
+    _current_colors[0] = 0;
+    _current_colors[1] = 0;
+    _current_colors[2] = 0;
+    _current_colors[3] = 0;
+    _current_colors[4] = 0;
+    _current_colors[5] = 0;
+    _current_colors[6] = 0;
+
+    /* Set some variables for the color fading */
+    _fading_max_steps = 200;
+    _fading_step_time = 50;
+    _fading = false;
+    _last_update = millis();
 }
 
 /* ----------------------------------------------------------------------- */
@@ -486,6 +501,9 @@ void MendeleevClass::_parse(uint8_t *buf, uint16_t *len)
 
 void MendeleevClass::tick()
 {
+    /*
+     * RS485 tick
+     */
     int i;
     static uint16_t buffPos = 0;
 
@@ -500,6 +518,31 @@ void MendeleevClass::tick()
     }
 
     _parse(_dataBuffer, &buffPos);
+
+    /*
+     * LED tick
+     */
+    unsigned long current_millis = millis();
+    if (_fading) {
+        // Enough time since the last step ?
+        if (current_millis - _last_update >= _fading_step_time) {
+            _fading_step++;
+            _fade();
+            if (_fading_step >= _fading_max_steps) {
+                _fading = false;
+            }
+            _last_update = current_millis;
+        }
+    }
+
+    /* Set the color to the leds */
+    analogWrite(LED_R_PIN,   _current_colors[0]);
+    analogWrite(LED_G_PIN,   _current_colors[1]);
+    analogWrite(LED_B_PIN,   _current_colors[2]);
+    analogWrite(LED_A_PIN,   _current_colors[3]);
+    analogWrite(LED_W_PIN,   _current_colors[4]);
+    analogWrite(LED_UV_PIN,  _current_colors[5]);
+    analogWrite(LED_TXT_PIN, _current_colors[6]);
 }
 
 /* ----------------------------------------------------------------------- */
@@ -507,37 +550,107 @@ void MendeleevClass::tick()
 /* ----------------------------------------------------------------------- */
 void MendeleevClass::setColor(uint8_t red, uint8_t green, uint8_t blue)
 {
-    analogWrite(LED_R_PIN, red);
-    analogWrite(LED_G_PIN, green);
-    analogWrite(LED_B_PIN, blue);
+    _current_colors[0] = map(red, 0, 255, 0, 4095);
+    _current_colors[1] = map(green, 0, 255, 0, 4095);
+    _current_colors[2] = map(blue, 0, 255, 0, 4095);
+    _fading = false;
+}
+
+void MendeleevClass::fadeColor(uint8_t red, uint8_t green, uint8_t blue)
+{
+    _initial_colors[0] = _current_colors[0];
+    _initial_colors[1] = _current_colors[1];
+    _initial_colors[2] = _current_colors[2];
+    _target_colors[0] = map(red, 0, 255, 0, 4095);
+    _target_colors[1] = map(green, 0, 255, 0, 4095);
+    _target_colors[2] = map(blue, 0, 255, 0, 4095);
+    _fading = true;
+    _fading_step = 0;
 }
 
 void MendeleevClass::setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha)
 {
     setColor(red, green, blue);
-    analogWrite(LED_A_PIN, alpha);
+    _current_colors[3] = map(alpha, 0, 255, 0, 4095);
+}
+
+void MendeleevClass::fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha)
+{
+    fadeColor(red, green, blue);
+    _initial_colors[3] = _current_colors[3];
+    _target_colors[3] = map(alpha, 0, 255, 0, 4095);
 }
 
 void MendeleevClass::setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white)
 {
     setColor(red, green, blue, alpha);
-    analogWrite(LED_W_PIN, white);
+    _current_colors[4] = map(white, 0, 255, 0, 4095);
 }
 
-void MendeleevClass::setTxt(uint8_t value)
+void MendeleevClass::fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white)
 {
-    analogWrite(LED_TXT_PIN, value);
+    fadeColor(red, green, blue, alpha);
+    _initial_colors[4] = _current_colors[4];
+    _target_colors[4] = map(white, 0, 255, 0, 4095);
+}
+
+void MendeleevClass::setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white, uint8_t uv, uint8_t txt)
+{
+    setColor(red, green, blue, alpha, white);
+    setUv(uv);
+    setTxt(txt);
+}
+
+void MendeleevClass::fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white, uint8_t uv, uint8_t txt)
+{
+    fadeColor(red, green, blue, alpha, white);
+    fadeUv(uv);
+    fadeTxt(txt);
 }
 
 void MendeleevClass::setUv(uint8_t value)
 {
-    analogWrite(LED_UV_PIN, value);
+    _current_colors[5] = map(value, 0, 255, 0, 4095);
+    _fading = false;
 }
 
-// void MendeleevClass::setColorSpeed(uint8_t speed)
+void MendeleevClass::fadeUv(uint8_t value)
+{
+    _initial_colors[5] = _current_colors[5];
+    _target_colors[5] = map(value, 0, 255, 0, 4095);
+    _fading = true;
+    _fading_step = 0;
+}
+
+void MendeleevClass::setTxt(uint8_t value)
+{
+    _current_colors[6] = map(value, 0, 255, 0, 4095);
+    _fading = false;
+}
+
+void MendeleevClass::fadeTxt(uint8_t value)
+{
+    _initial_colors[6] = _current_colors[6];
+    _target_colors[6] = map(value, 0, 255, 0, 4095);
+    _fading = true;
+    _fading_step = 0;
+}
+
+// void MendeleevClass::setFadingSpeed(uint16_t speedTime)
 // {
-//
+//     _fading_step_time = speedTime;
 // }
+
+void MendeleevClass::_fade()
+{
+    _current_colors[0] = (uint8_t)(_initial_colors[0] - (_fading_step*((_initial_colors[0]-(float)_target_colors[0])/_fading_max_steps)));
+    _current_colors[1] = (uint8_t)(_initial_colors[1] - (_fading_step*((_initial_colors[1]-(float)_target_colors[1])/_fading_max_steps)));
+    _current_colors[2] = (uint8_t)(_initial_colors[2] - (_fading_step*((_initial_colors[2]-(float)_target_colors[2])/_fading_max_steps)));
+    _current_colors[3] = (uint8_t)(_initial_colors[3] - (_fading_step*((_initial_colors[3]-(float)_target_colors[3])/_fading_max_steps)));
+    _current_colors[4] = (uint8_t)(_initial_colors[4] - (_fading_step*((_initial_colors[4]-(float)_target_colors[4])/_fading_max_steps)));
+    _current_colors[5] = (uint8_t)(_initial_colors[5] - (_fading_step*((_initial_colors[5]-(float)_target_colors[5])/_fading_max_steps)));
+    _current_colors[6] = (uint8_t)(_initial_colors[6] - (_fading_step*((_initial_colors[6]-(float)_target_colors[6])/_fading_max_steps)));
+}
 
 /* ----------------------------------------------------------------------- */
 /* Motor methods.                                                          */

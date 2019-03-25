@@ -51,15 +51,12 @@ bool setColorCallback(uint8_t *data, uint16_t *len)
 {
     SerialUSB.println("set color callback");
 
-
     if (*len != 7) {
         *len = 0;
         return false;
     }
 
-    Mendeleev.setColor(data[0], data[1], data[2], data[3], data[4]);
-    Mendeleev.setUv(data[5]);
-    Mendeleev.setTxt(data[6]);
+    Mendeleev.fadeColor(data[0], data[1], data[2], data[3], data[4], data[5], data[6]);
 
     *len = 0;
     return true;
@@ -175,9 +172,6 @@ void setup() {
     /* Initialize Mendeleev board */
     Mendeleev.init();
     Mendeleev.RS485Begin(38400);
-
-    /* Turn off TXT leds (they are default on when powering the board) */
-    Mendeleev.setTxt(0);
 
     /* Register handler functions for RS485 commands */
     Mendeleev.registerCallback(COMMAND_SET_COLOR, &setColorCallback);
