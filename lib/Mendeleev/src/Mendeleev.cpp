@@ -205,11 +205,14 @@ void MendeleevClass::init()
     pinMode(INPUT1_PIN, INPUT);
     pinMode(INPUT2_PIN, INPUT);
     pinMode(INPUT3_PIN, INPUT);
-    // TODO: activate pullups?
+    digitalWrite(INPUT0_PIN, HIGH);
+    digitalWrite(INPUT1_PIN, HIGH);
+    digitalWrite(INPUT2_PIN, HIGH);
+    digitalWrite(INPUT3_PIN, HIGH);
 
     /* Set up Proximity pin */
     pinMode(PROX_PIN, INPUT);
-    // TODO: activate pullup?
+    digitalWrite(PROX_PIN, HIGH);
 
     /* Set up LED pins */
     analogWriteResolution(12);
@@ -662,16 +665,16 @@ enum MotorType MendeleevClass::getMotorType(enum Motors motor)
     uint8_t value = 0;
     switch(motor) {
         case MOTOR_1: {
-            value = _mcp.digitalRead(M1TYPE0_PIN);
+            value = !_mcp.digitalRead(M1TYPE0_PIN);
             type |= value;
-            value = _mcp.digitalRead(M1TYPE1_PIN);
+            value = !_mcp.digitalRead(M1TYPE1_PIN);
             type |= value << 1;
             break;
         }
         case MOTOR_2: {
-            value = _mcp.digitalRead(M2TYPE0_PIN);
+            value = !_mcp.digitalRead(M2TYPE0_PIN);
             type |= value;
-            value = _mcp.digitalRead(M2TYPE1_PIN);
+            value = !_mcp.digitalRead(M2TYPE1_PIN);
             type |= value << 1;
             break;
         }
@@ -756,24 +759,24 @@ uint8_t MendeleevClass::_getAddress()
 {
     uint8_t addr = 0;
     uint8_t value = 0;
-    value = _mcp.digitalRead(DIPSW0_PIN);
+    value = !_mcp.digitalRead(DIPSW0_PIN);
     addr |= value;
-    value = _mcp.digitalRead(DIPSW1_PIN);
+    value = !_mcp.digitalRead(DIPSW1_PIN);
     addr |= value << 1;
-    value = _mcp.digitalRead(DIPSW2_PIN);
+    value = !_mcp.digitalRead(DIPSW2_PIN);
     addr |= value << 2;
-    value = _mcp.digitalRead(DIPSW3_PIN);
+    value = !_mcp.digitalRead(DIPSW3_PIN);
     addr |= value << 3;
-    value = _mcp.digitalRead(DIPSW4_PIN);
+    value = !_mcp.digitalRead(DIPSW4_PIN);
     addr |= value << 4;
-    value = _mcp.digitalRead(DIPSW5_PIN);
+    value = !_mcp.digitalRead(DIPSW5_PIN);
     addr |= value << 5;
-    value = _mcp.digitalRead(DIPSW6_PIN);
+    value = !_mcp.digitalRead(DIPSW6_PIN);
     addr |= value << 6;
     return addr;
 }
 
 uint8_t MendeleevClass::_getConfig()
 {
-    return _mcp.digitalRead(DIPSW7_PIN);
+    return !_mcp.digitalRead(DIPSW7_PIN);
 }
