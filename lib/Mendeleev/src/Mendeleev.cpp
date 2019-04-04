@@ -214,8 +214,7 @@ void MendeleevClass::init()
     pinMode(PROX_PIN, INPUT);
     digitalWrite(PROX_PIN, HIGH);
 
-    /* Set up LED pins */
-    analogWriteResolution(12);
+    // analogWriteResolution(12);
     // pinMode(LED_R_PIN,   OUTPUT);
     // pinMode(LED_G_PIN,   OUTPUT);
     // pinMode(LED_B_PIN,   OUTPUT);
@@ -223,7 +222,6 @@ void MendeleevClass::init()
     // pinMode(LED_W_PIN,   OUTPUT);
     // pinMode(LED_UV_PIN,  OUTPUT);
     // pinMode(LED_TXT_PIN, OUTPUT);
-
 
     /* Set up MCP23017 */
     _mcp.begin();
@@ -285,8 +283,8 @@ void MendeleevClass::init()
     _current_colors[6] = 0;
 
     /* Set some variables for the color fading */
-    _fading_max_steps = 200;
-    _fading_step_time = 50;
+    _fading_max_steps = 1000;
+    _fading_step_time = 10;
     _fading = false;
     _last_update = millis();
 }
@@ -533,6 +531,7 @@ void MendeleevClass::tick()
             _fade();
             if (_fading_step >= _fading_max_steps) {
                 _fading = false;
+                DEBUG_PRINTLN("Stop fading");
             }
             _last_update = current_millis;
         }
@@ -646,13 +645,13 @@ void MendeleevClass::fadeTxt(uint8_t value)
 
 void MendeleevClass::_fade()
 {
-    _current_colors[0] = (uint8_t)(_initial_colors[0] - (_fading_step*((_initial_colors[0]-(float)_target_colors[0])/_fading_max_steps)));
-    _current_colors[1] = (uint8_t)(_initial_colors[1] - (_fading_step*((_initial_colors[1]-(float)_target_colors[1])/_fading_max_steps)));
-    _current_colors[2] = (uint8_t)(_initial_colors[2] - (_fading_step*((_initial_colors[2]-(float)_target_colors[2])/_fading_max_steps)));
-    _current_colors[3] = (uint8_t)(_initial_colors[3] - (_fading_step*((_initial_colors[3]-(float)_target_colors[3])/_fading_max_steps)));
-    _current_colors[4] = (uint8_t)(_initial_colors[4] - (_fading_step*((_initial_colors[4]-(float)_target_colors[4])/_fading_max_steps)));
-    _current_colors[5] = (uint8_t)(_initial_colors[5] - (_fading_step*((_initial_colors[5]-(float)_target_colors[5])/_fading_max_steps)));
-    _current_colors[6] = (uint8_t)(_initial_colors[6] - (_fading_step*((_initial_colors[6]-(float)_target_colors[6])/_fading_max_steps)));
+    _current_colors[0] = (uint16_t)(_initial_colors[0] - (_fading_step*((_initial_colors[0]-(float)_target_colors[0])/_fading_max_steps)));
+    _current_colors[1] = (uint16_t)(_initial_colors[1] - (_fading_step*((_initial_colors[1]-(float)_target_colors[1])/_fading_max_steps)));
+    _current_colors[2] = (uint16_t)(_initial_colors[2] - (_fading_step*((_initial_colors[2]-(float)_target_colors[2])/_fading_max_steps)));
+    _current_colors[3] = (uint16_t)(_initial_colors[3] - (_fading_step*((_initial_colors[3]-(float)_target_colors[3])/_fading_max_steps)));
+    _current_colors[4] = (uint16_t)(_initial_colors[4] - (_fading_step*((_initial_colors[4]-(float)_target_colors[4])/_fading_max_steps)));
+    _current_colors[5] = (uint16_t)(_initial_colors[5] - (_fading_step*((_initial_colors[5]-(float)_target_colors[5])/_fading_max_steps)));
+    _current_colors[6] = (uint16_t)(_initial_colors[6] - (_fading_step*((_initial_colors[6]-(float)_target_colors[6])/_fading_max_steps)));
 }
 
 /* ----------------------------------------------------------------------- */

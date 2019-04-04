@@ -15,6 +15,9 @@
 #define VERSION "Unknown version"
 #endif
 
+int led = 6;
+bool changed = false;
+
 /* Counter for OTA */
 int read = 0;
 
@@ -155,6 +158,9 @@ void input3Handler()
 void proximityHandler()
 {
     SerialUSB.println("Proximity interrupt handler");
+    led++;
+    led = led % 7;
+    changed = true;
 }
 
 /* ----------------------------------------------------------------------- */
@@ -174,18 +180,18 @@ void setup() {
     Mendeleev.RS485Begin(38400);
 
     /* Register handler functions for RS485 commands */
-    Mendeleev.registerCallback(COMMAND_SET_COLOR, &setColorCallback);
-    Mendeleev.registerCallback(COMMAND_SET_MODE, &setModeCallback);
-    Mendeleev.registerCallback(COMMAND_OTA, &otaCallback);
+    Mendeleev.registerCallback(COMMAND_SET_COLOR,   &setColorCallback);
+    Mendeleev.registerCallback(COMMAND_SET_MODE,    &setModeCallback);
+    Mendeleev.registerCallback(COMMAND_OTA,         &otaCallback);
     Mendeleev.registerCallback(COMMAND_GET_VERSION, &getVersionCallback);
-    Mendeleev.registerCallback(COMMAND_SET_OUTPUT, &setOutputCallback);
+    Mendeleev.registerCallback(COMMAND_SET_OUTPUT,  &setOutputCallback);
 
     /* Attach interrupt handlers to the inputs */
     Mendeleev.attachInputInterrupt(INPUT_0, input0Handler, CHANGE);
     Mendeleev.attachInputInterrupt(INPUT_1, input1Handler, CHANGE);
     Mendeleev.attachInputInterrupt(INPUT_2, input2Handler, CHANGE);
     Mendeleev.attachInputInterrupt(INPUT_3, input3Handler, CHANGE);
-    Mendeleev.attachProximityInterrupt(proximityHandler, CHANGE);
+    Mendeleev.attachProximityInterrupt(proximityHandler, RISING);
 }
 
 /* ----------------------------------------------------------------------- */
@@ -193,4 +199,34 @@ void setup() {
 /* ----------------------------------------------------------------------- */
 void loop() {
     Mendeleev.tick();
+
+    if (changed) {
+        changed = false;
+        switch(led) {
+            case 0:
+                Mendeleev.setColor(50, 0, 0, 0, 0, 0, 0);
+                break;
+            case 1:
+                Mendeleev.setColor(0, 50, 0, 0, 0, 0, 0);
+                break;
+            case 2:
+                Mendeleev.setColor(0, 0, 50, 0, 0, 0, 0);
+                break;
+            case 3:
+                Mendeleev.setColor(0, 0, 0, 50, 0, 0, 0);
+                break;
+            case 4:
+                Mendeleev.setColor(0, 0, 0, 0, 50, 0, 0);
+                break;
+            case 5:
+                Mendeleev.setColor(0, 0, 0, 0, 0, 50, 0);
+                break;
+            case 6:
+                Mendeleev.setColor(0, 0, 0, 0, 0, 0, 50);
+                break;
+            default:
+                Mendeleev.setColor(0, 0, 0, 0, 0, 0, 0);
+                break;
+        }
+    }
 }
