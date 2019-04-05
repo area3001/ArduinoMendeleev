@@ -214,7 +214,7 @@ void MendeleevClass::init()
     pinMode(PROX_PIN, INPUT);
     digitalWrite(PROX_PIN, HIGH);
 
-    // analogWriteResolution(12);
+    analogWriteResolution(12);
     // pinMode(LED_R_PIN,   OUTPUT);
     // pinMode(LED_G_PIN,   OUTPUT);
     // pinMode(LED_B_PIN,   OUTPUT);
@@ -283,8 +283,8 @@ void MendeleevClass::init()
     _current_colors[6] = 0;
 
     /* Set some variables for the color fading */
-    _fading_max_steps = 1000;
-    _fading_step_time = 10;
+    _fading_max_steps = 300;
+    _fading_step_time = 1;
     _fading = false;
     _last_update = millis();
 }
@@ -531,7 +531,6 @@ void MendeleevClass::tick()
             _fade();
             if (_fading_step >= _fading_max_steps) {
                 _fading = false;
-                DEBUG_PRINTLN("Stop fading");
             }
             _last_update = current_millis;
         }

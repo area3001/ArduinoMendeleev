@@ -191,7 +191,7 @@ void setup() {
     Mendeleev.attachInputInterrupt(INPUT_1, input1Handler, CHANGE);
     Mendeleev.attachInputInterrupt(INPUT_2, input2Handler, CHANGE);
     Mendeleev.attachInputInterrupt(INPUT_3, input3Handler, CHANGE);
-    Mendeleev.attachProximityInterrupt(proximityHandler, RISING);
+    Mendeleev.attachProximityInterrupt(proximityHandler, FALLING);
 }
 
 /* ----------------------------------------------------------------------- */
@@ -204,28 +204,28 @@ void loop() {
         changed = false;
         switch(led) {
             case 0:
-                Mendeleev.setColor(50, 0, 0, 0, 0, 0, 0);
+                Mendeleev.fadeColor(50, 0, 0, 0, 0, 0, 0);
                 break;
             case 1:
-                Mendeleev.setColor(0, 50, 0, 0, 0, 0, 0);
+                Mendeleev.fadeColor(0, 50, 0, 0, 0, 0, 0);
                 break;
             case 2:
-                Mendeleev.setColor(0, 0, 50, 0, 0, 0, 0);
+                Mendeleev.fadeColor(0, 0, 50, 0, 0, 0, 0);
                 break;
             case 3:
-                Mendeleev.setColor(0, 0, 0, 50, 0, 0, 0);
+                Mendeleev.fadeColor(0, 0, 0, 50, 0, 0, 0);
                 break;
             case 4:
-                Mendeleev.setColor(0, 0, 0, 0, 50, 0, 0);
+                Mendeleev.fadeColor(0, 0, 0, 0, 50, 0, 0);
                 break;
             case 5:
-                Mendeleev.setColor(0, 0, 0, 0, 0, 50, 0);
+                Mendeleev.fadeColor(0, 0, 0, 0, 0, 50, 0);
                 break;
             case 6:
-                Mendeleev.setColor(0, 0, 0, 0, 0, 0, 50);
+                Mendeleev.fadeColor(0, 0, 0, 0, 0, 0, 50);
                 break;
             default:
-                Mendeleev.setColor(0, 0, 0, 0, 0, 0, 0);
+                Mendeleev.fadeColor(0, 0, 0, 0, 0, 0, 0);
                 break;
         }
     }
