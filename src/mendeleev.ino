@@ -54,12 +54,16 @@ bool setColorCallback(uint8_t *data, uint16_t *len)
 {
     SerialUSB.println("set color callback");
 
-    if (*len != 7) {
+    if (*len > 7) {
         *len = 0;
         return false;
     }
 
-    Mendeleev.fadeColor(data[0], data[1], data[2], data[3], data[4], data[5], data[6]);
+    uint8_t colors[7];
+    memset(colors, 0, 7);
+    memcpy(colors, data, *len);
+
+    Mendeleev.fadeColor(colors[0], colors[1], colors[2], colors[3], colors[4], colors[5], colors[6]);
 
     *len = 0;
     return true;
@@ -68,14 +72,22 @@ bool setColorCallback(uint8_t *data, uint16_t *len)
 bool setModeCallback(uint8_t *data, uint16_t *len)
 {
     SerialUSB.println("set mode callback");
-    *len = 0;
-
-    if (data[0] == 0xFF) {
-        return true;
-    }
-    else {
+    if (*len != 1) {
+        *len = 0;
         return false;
     }
+
+    switch(data[0]) {
+        case 1:
+        // set guest mode
+        break;
+        case 2:
+        // set lecturer mode
+        break;
+    }
+
+    *len = 0;
+    return true;
 }
 
 bool otaCallback(uint8_t *data, uint16_t *len)
