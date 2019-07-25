@@ -14,19 +14,6 @@
 #include "Mendeleev.h"
 #include "wiring_private.h" // TODO: do we need this?
 
-/* Debug defines */
-#ifdef DEBUG
- #define DEBUG_PRINTLN(x)  SerialUSB.println(x)
- #define DEBUG_PRINT(x)    SerialUSB.print(x)
- #define DEBUG_PRINTDEC(x) SerialUSB.print(x, DEC)
- #define DEBUG_PRINTHEX(x) SerialUSB.print(x, HEX)
-#else
- #define DEBUG_PRINTLN(x)
- #define DEBUG_PRINT(x)
- #define DEBUG_PRINTDEC(x)
- #define DEBUG_PRINTHEX(x)
-#endif
-
 /* RS485 protocol defines
  *
  * packet layout:
@@ -64,22 +51,19 @@
 #define PIN_SPI_CS1 (7u)            /* PA21 */
 
 /* Motors */
-#define M1CTRL0_PIN PIN_SERIAL1_RX  /* PA11 SERCOM0/PAD[3] */
-#define M1CTRL1_PIN (9u)            /* PA07 TCC1/WO[1] */
-#define M1CTRL2_PIN (8u)            /* PA06 TCC1/WO[0] */
-#define M2CTRL0_PIN PIN_SERIAL1_TX  /* PA10 SERCOM0/PAD[2] */
-#define M2CTRL1_PIN (3u)            /* PA09 TCC0/WO[1] */
-#define M2CTRL2_PIN (4u)            /* PA08 TCC0/WO[0] */
-
+#define M1CTRL0_PIN PIN_SERIAL1_RX  /* PA11 SERCOM0/PAD[3] LED */
+#define M1CTRL1_PIN (9u)            /* PA07 TCC1/WO[1] DIR */
+#define M1CTRL2_PIN (8u)            /* PA06 TCC1/WO[0] STEP */
+#define M2CTRL0_PIN PIN_SERIAL1_TX  /* PA10 SERCOM0/PAD[2] LED */
+#define M2CTRL1_PIN (3u)            /* PA09 TCC0/WO[1] DIR */
+#define M2CTRL2_PIN (4u)            /* PA08 TCC0/WO[0] STEP */
 /* Inputs */
 #define INPUT0_PIN  PIN_A1          /* PB08 */
 #define INPUT1_PIN  PIN_A2          /* PB09 */
 #define INPUT2_PIN  PIN_A0          /* PA02 */
 #define INPUT3_PIN  PIN_A3          /* PA04 */
-
 /* Proximity */
 #define PROX_PIN    PIN_A4          /* PA05 */
-
 /* LED pins */
 #define LED_R_PIN   (5u)            /* PA15 TC3/WO[1] */
 #define LED_G_PIN   (11u)           /* PA16 TCC2/WO[0] */
@@ -110,6 +94,9 @@
 #define M1TYPE1_PIN (13u)
 #define M2TYPE0_PIN (14u)
 #define M2TYPE1_PIN (15u)
+
+/* Animation timeout in milliseconds */
+#define ANIMATION_TIMEOUT (40000)
 
 /* Table of CRC values for high-order byte */
 static const uint8_t table_crc_hi[] = {
@@ -193,12 +180,13 @@ void MendeleevClass::init()
     // pinPeripheral(M1CTRL0_PIN, PIO_DIGITAL);
     // pinPeripheral(M2CTRL0_PIN, PIO_DIGITAL);
 
-    // pinMode(M1CTRL0_PIN, OUTPUT);
-    // pinMode(M1CTRL1_PIN, OUTPUT);
-    // pinMode(M1CTRL2_PIN, OUTPUT);
-    // pinMode(M2CTRL0_PIN, OUTPUT);
-    // pinMode(M2CTRL1_PIN, OUTPUT);
-    // pinMode(M2CTRL2_PIN, OUTPUT);
+    pinMode(M1CTRL0_PIN, OUTPUT); // led
+    // pinMode(M1CTRL1_PIN, OUTPUT); // dir
+    // pinMode(M1CTRL2_PIN, OUTPUT); // step
+
+    pinMode(M2CTRL0_PIN, OUTPUT); // led
+    // pinMode(M2CTRL1_PIN, OUTPUT); // dir
+    // pinMode(M2CTRL2_PIN, OUTPUT); // step
 
     /* Set up Input pins */
     pinMode(INPUT0_PIN, INPUT);
@@ -262,31 +250,56 @@ void MendeleevClass::init()
 
     /* Read our address */
     _addr = _getAddress();
-    DEBUG_PRINT("I am element "); DEBUG_PRINTDEC(_addr); DEBUG_PRINTLN(".");
 
     /* Read the config pin */
     DEBUG_PRINT("Config pin is: "); DEBUG_PRINTDEC(_getConfig()); DEBUG_PRINTLN(".");
 
     /* Read the types of the motor slots */
     _slot1Type = getMotorType(MOTOR_1);
-    _slot2Type = getMotorType(MOTOR_2);
     DEBUG_PRINT("Motor type slot 1: "); DEBUG_PRINTDEC(_slot1Type); DEBUG_PRINTLN(".");
+    if (_slot1Type != MOTORTYPE_NONE) {
+        DEBUG_PRINTLN("Creating stepper in slot 1");
+        _stepper1 = new AccelStepper(AccelStepper::DRIVER, M1CTRL2_PIN, M1CTRL1_PIN);
+        _stepper1->setMaxSpeed(100);
+        _stepper1->setSpeed(50);
+    }
+    // digitalWrite(M1CTRL1_PIN, LOW);
+    // digitalWrite(M1CTRL2_PIN, LOW);
+
+    _slot2Type = getMotorType(MOTOR_2);
     DEBUG_PRINT("Motor type slot 2: "); DEBUG_PRINTDEC(_slot2Type); DEBUG_PRINTLN(".");
+    if (_slot2Type != MOTORTYPE_NONE) {
+        DEBUG_PRINTLN("Creating stepper in slot 2");
+        _stepper2 = new AccelStepper(AccelStepper::DRIVER, M2CTRL2_PIN, M2CTRL1_PIN);
+        _stepper2->setMaxSpeed(100);
+        _stepper2->setSpeed(50);
+    }
+
+    // digitalWrite(M2CTRL1_PIN, LOW);
+    // digitalWrite(M2CTRL2_PIN, LOW);
 
     /* Set all LEDs of at boot */
-    _current_colors[0] = 0;
-    _current_colors[1] = 0;
-    _current_colors[2] = 0;
-    _current_colors[3] = 0;
-    _current_colors[4] = 0;
-    _current_colors[5] = 0;
-    _current_colors[6] = 0;
+    _current_colors.red = 0;
+    _current_colors.green = 0;
+    _current_colors.blue = 0;
+    _current_colors.alpha = 0;
+    _current_colors.white = 0;
+    _current_colors.uv = 0;
+    _current_colors.text = 0;
+    _current_colors.motor1led = 0;
+    _current_colors.motor2led = 0;
 
     /* Set some variables for the color fading */
     _fading_max_steps = 300;
     _fading_step_time = 1;
     _fading = false;
     _last_update = millis();
+    _animating = false;
+}
+
+uint8_t MendeleevClass::getAddress()
+{
+    return _addr;
 }
 
 /* ----------------------------------------------------------------------- */
@@ -406,100 +419,6 @@ int MendeleevClass::RS485Read(unsigned long delayWait, uint8_t repeatTime)
     return RS485Serial.read();
 }
 
-uint16_t MendeleevClass::_crc16(uint8_t *buffer, uint16_t buffer_length)
-{
-    uint8_t crc_hi = 0xFF; /* high CRC byte initialized */
-    uint8_t crc_lo = 0xFF; /* low CRC byte initialized */
-    unsigned int i; /* will index into CRC lookup */
-
-    /* pass through message buffer */
-    while (buffer_length--) {
-        i = crc_hi ^ *buffer++; /* calculate the CRC  */
-        crc_hi = crc_lo ^ table_crc_hi[i];
-        crc_lo = table_crc_lo[i];
-    }
-
-    return (crc_hi << 8 | crc_lo);
-}
-
-void MendeleevClass::_parse(uint8_t *buf, uint16_t *len)
-{
-    if (*len < PACKET_OVERHEAD) {
-        /* The packet is not complete yet */
-        return;
-    }
-
-    /* Check if packet is for me */
-    if (buf[PACKET_DEST_OFFSET] != _addr && buf[PACKET_DEST_OFFSET] != BROADCAST_ADDR) {
-        DEBUG_PRINT("Destination is ");
-        DEBUG_PRINTHEX(buf[PACKET_DEST_OFFSET]);
-        DEBUG_PRINT(". My address is ");
-        DEBUG_PRINTHEX(_addr);
-        DEBUG_PRINTLN(".");
-        *len = 0;
-        return;
-    }
-
-    /* Check the command field */
-    if (buf[PACKET_CMD_OFFSET] >= COMMAND_MAX) {
-        DEBUG_PRINTLN("Invalid command");
-        *len = 0;
-        return;
-    }
-
-    /* Check if we have a command handler for this command */
-    enum Commands cmd = (enum Commands)buf[PACKET_CMD_OFFSET];
-
-    if (_callbacks[cmd] == NULL) {
-        DEBUG_PRINTLN("No callback registered for this command");
-        *len = 0;
-        return;
-    }
-
-    /* Check if we have the full payload */
-    uint16_t datalen = ((buf[PACKET_LEN_OFFSET] << 8) | buf[PACKET_LEN_OFFSET + 1]);
-
-    if ((datalen + PACKET_OVERHEAD) > *len) {
-        /* Not everything received yet */
-        return;
-    }
-
-    /* Check the checksum */
-    uint16_t cksm_received = ((buf[PACKET_DATA_OFFSET + datalen] << 8) | buf[PACKET_DATA_OFFSET + datalen + 1]);
-    uint16_t cksm_calculated = _crc16(buf + PACKET_DEST_OFFSET, PACKET_DATA_OFFSET + datalen - PACKET_PREAMBLE_SIZE);
-
-    if (cksm_received != cksm_calculated) {
-        DEBUG_PRINT("ERROR CRC received ");
-        DEBUG_PRINTHEX(cksm_received);
-        DEBUG_PRINT(" ");
-        DEBUG_PRINTHEX(cksm_calculated);
-        DEBUG_PRINTLN("");
-        *len = 0;
-        return;
-    }
-
-    /* Run callback */
-    bool cb_success = (*_callbacks[cmd])(buf + PACKET_DATA_OFFSET, &datalen);
-
-    /* Send response if necessary */
-    bool is_broadcast = (buf[PACKET_DEST_OFFSET] == BROADCAST_ADDR);
-
-    if (!is_broadcast) {
-        buf[PACKET_DEST_OFFSET] = buf[PACKET_SRC_OFFSET];
-        buf[PACKET_SRC_OFFSET] = _addr;
-        if (!cb_success) {
-            buf[PACKET_CMD_OFFSET] = ~buf[PACKET_CMD_OFFSET];
-        }
-        buf[PACKET_LEN_OFFSET] = datalen >> 8;
-        buf[PACKET_LEN_OFFSET + 1] = datalen & 0x00FF;
-        uint16_t chksm = _crc16(buf + PACKET_DEST_OFFSET, PACKET_DATA_OFFSET + datalen - PACKET_PREAMBLE_SIZE);
-        buf[PACKET_DATA_OFFSET + datalen] = chksm >> 8;
-        buf[PACKET_DATA_OFFSET + datalen + 1] = chksm & 0x00FF;
-        RS485Write(buf, PACKET_OVERHEAD + datalen);
-    }
-    *len = 0;
-}
-
 void MendeleevClass::tick()
 {
     /*
@@ -537,13 +456,53 @@ void MendeleevClass::tick()
     }
 
     /* Set the color to the leds */
-    analogWrite(LED_R_PIN,   _current_colors[0]);
-    analogWrite(LED_G_PIN,   _current_colors[1]);
-    analogWrite(LED_B_PIN,   _current_colors[2]);
-    analogWrite(LED_A_PIN,   _current_colors[3]);
-    analogWrite(LED_W_PIN,   _current_colors[4]);
-    analogWrite(LED_UV_PIN,  _current_colors[5]);
-    analogWrite(LED_TXT_PIN, _current_colors[6]);
+    analogWrite(LED_R_PIN,   _current_colors.red);
+    analogWrite(LED_G_PIN,   _current_colors.green);
+    analogWrite(LED_B_PIN,   _current_colors.blue);
+    analogWrite(LED_A_PIN,   _current_colors.alpha);
+    analogWrite(LED_W_PIN,   _current_colors.white);
+    analogWrite(LED_UV_PIN,  _current_colors.uv);
+    analogWrite(LED_TXT_PIN, _current_colors.text);
+    analogWrite(M1CTRL0_PIN, _current_colors.motor1led);
+    analogWrite(M2CTRL0_PIN, _current_colors.motor2led);
+
+    /* Stepper motors */
+    // _stepper1->runSpeed();
+    // _stepper2->runSpeed();
+
+    /* check animation timeout */
+    // if ((long) (millis() - _animationStartTime) >= ANIMATION_TIMEOUT) {
+    //     _stopAnimation();
+    // }
+}
+
+void MendeleevClass::startAnimation()
+{
+    DEBUG_PRINTLN("Starting anumation");
+    if (_animating) return;
+
+    _animationStartTime = millis();
+    _animating = true;
+
+    /* activate all outputs */
+    setOutput(OUTPUT_0, 1);
+    setOutput(OUTPUT_1, 1);
+    setOutput(OUTPUT_2, 1);
+    setOutput(OUTPUT_3, 1);
+
+    DEBUG_PRINTLN("Outputs set");
+
+    /* activate white, UV, text and motor leds */
+    fadeColor(0, 0, 0, 0, 255, 255, 255);
+    fadeMotorLed(MOTOR_1, 255);
+    fadeMotorLed(MOTOR_2, 255);
+
+
+    DEBUG_PRINTLN("Leds faded");
+    /* activate motors */
+    // _stepper1->enableOutputs();
+    // _stepper2->enableOutputs();
+    // DEBUG_PRINTLN("Enabled motors");
 }
 
 /* ----------------------------------------------------------------------- */
@@ -551,20 +510,20 @@ void MendeleevClass::tick()
 /* ----------------------------------------------------------------------- */
 void MendeleevClass::setColor(uint8_t red, uint8_t green, uint8_t blue)
 {
-    _current_colors[0] = map(red, 0, 255, 0, 4095);
-    _current_colors[1] = map(green, 0, 255, 0, 4095);
-    _current_colors[2] = map(blue, 0, 255, 0, 4095);
+    _current_colors.red = map(red,   0, 255, 0, 2047);
+    _current_colors.green = map(green, 0, 255, 0, 2047);
+    _current_colors.blue = map(blue,  0, 255, 0, 2047);
     _fading = false;
 }
 
 void MendeleevClass::fadeColor(uint8_t red, uint8_t green, uint8_t blue)
 {
-    _initial_colors[0] = _current_colors[0];
-    _initial_colors[1] = _current_colors[1];
-    _initial_colors[2] = _current_colors[2];
-    _target_colors[0] = map(red, 0, 255, 0, 4095);
-    _target_colors[1] = map(green, 0, 255, 0, 4095);
-    _target_colors[2] = map(blue, 0, 255, 0, 4095);
+    _initial_colors.red = _current_colors.red;
+    _initial_colors.green = _current_colors.green;
+    _initial_colors.blue = _current_colors.blue;
+    _target_colors.red = map(red,   0, 255, 0, 2047);
+    _target_colors.green = map(green, 0, 255, 0, 2047);
+    _target_colors.blue = map(blue,  0, 255, 0, 2047);
     _fading = true;
     _fading_step = 0;
 }
@@ -572,27 +531,27 @@ void MendeleevClass::fadeColor(uint8_t red, uint8_t green, uint8_t blue)
 void MendeleevClass::setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha)
 {
     setColor(red, green, blue);
-    _current_colors[3] = map(alpha, 0, 255, 0, 4095);
+    _current_colors.alpha = map(alpha, 0, 255, 0, 2047);
 }
 
 void MendeleevClass::fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha)
 {
     fadeColor(red, green, blue);
-    _initial_colors[3] = _current_colors[3];
-    _target_colors[3] = map(alpha, 0, 255, 0, 4095);
+    _initial_colors.alpha = _current_colors.alpha;
+    _target_colors.alpha = map(alpha, 0, 255, 0, 2047);
 }
 
 void MendeleevClass::setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white)
 {
     setColor(red, green, blue, alpha);
-    _current_colors[4] = map(white, 0, 255, 0, 4095);
+    _current_colors.white = map(white, 0, 255, 0, 4095);
 }
 
 void MendeleevClass::fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white)
 {
     fadeColor(red, green, blue, alpha);
-    _initial_colors[4] = _current_colors[4];
-    _target_colors[4] = map(white, 0, 255, 0, 4095);
+    _initial_colors.white = _current_colors.white;
+    _target_colors.white = map(white, 0, 255, 0, 4095);
 }
 
 void MendeleevClass::setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white, uint8_t uv, uint8_t txt)
@@ -611,28 +570,65 @@ void MendeleevClass::fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t
 
 void MendeleevClass::setUv(uint8_t value)
 {
-    _current_colors[5] = map(value, 0, 255, 0, 4095);
+    _current_colors.uv = map(value, 0, 255, 0, 2047);
     _fading = false;
 }
 
 void MendeleevClass::fadeUv(uint8_t value)
 {
-    _initial_colors[5] = _current_colors[5];
-    _target_colors[5] = map(value, 0, 255, 0, 4095);
+    _initial_colors.uv = _current_colors.uv;
+    _target_colors.uv = map(value, 0, 255, 0, 2047);
     _fading = true;
     _fading_step = 0;
 }
 
 void MendeleevClass::setTxt(uint8_t value)
 {
-    _current_colors[6] = map(value, 0, 255, 0, 4095);
+    _current_colors.text = map(value, 0, 255, 0, 2047);
     _fading = false;
 }
 
 void MendeleevClass::fadeTxt(uint8_t value)
 {
-    _initial_colors[6] = _current_colors[6];
-    _target_colors[6] = map(value, 0, 255, 0, 4095);
+    _initial_colors.text = _current_colors.text;
+    _target_colors.text = map(value, 0, 255, 0, 2047);
+    _fading = true;
+    _fading_step = 0;
+}
+
+void MendeleevClass::setMotorLed(enum Motors motor, uint8_t value)
+{
+    switch(motor) {
+        case MOTOR_1: {
+            _current_colors.motor1led = map(value, 0, 255, 0, 2047);
+            break;
+        }
+        case MOTOR_2: {
+            _current_colors.motor2led = map(value, 0, 255, 0, 2047);
+            break;
+        }
+        default:
+        DEBUG_PRINTLN("Unknown motor to set Led");
+    }
+    _fading = false;
+}
+
+void MendeleevClass::fadeMotorLed(enum Motors motor, uint8_t value)
+{
+    switch(motor) {
+        case MOTOR_1: {
+            _initial_colors.motor1led = _current_colors.motor1led;
+            _target_colors.motor1led = map(value, 0, 255, 0, 2047);
+            break;
+        }
+        case MOTOR_2: {
+            _initial_colors.motor2led = _current_colors.motor2led;
+            _target_colors.motor2led = map(value, 0, 255, 0, 2047);
+            break;
+        }
+        default:
+        DEBUG_PRINTLN("Unknown motor to fade Led");
+    }
     _fading = true;
     _fading_step = 0;
 }
@@ -641,17 +637,6 @@ void MendeleevClass::fadeTxt(uint8_t value)
 // {
 //     _fading_step_time = speedTime;
 // }
-
-void MendeleevClass::_fade()
-{
-    _current_colors[0] = (uint16_t)(_initial_colors[0] - (_fading_step*((_initial_colors[0]-(float)_target_colors[0])/_fading_max_steps)));
-    _current_colors[1] = (uint16_t)(_initial_colors[1] - (_fading_step*((_initial_colors[1]-(float)_target_colors[1])/_fading_max_steps)));
-    _current_colors[2] = (uint16_t)(_initial_colors[2] - (_fading_step*((_initial_colors[2]-(float)_target_colors[2])/_fading_max_steps)));
-    _current_colors[3] = (uint16_t)(_initial_colors[3] - (_fading_step*((_initial_colors[3]-(float)_target_colors[3])/_fading_max_steps)));
-    _current_colors[4] = (uint16_t)(_initial_colors[4] - (_fading_step*((_initial_colors[4]-(float)_target_colors[4])/_fading_max_steps)));
-    _current_colors[5] = (uint16_t)(_initial_colors[5] - (_fading_step*((_initial_colors[5]-(float)_target_colors[5])/_fading_max_steps)));
-    _current_colors[6] = (uint16_t)(_initial_colors[6] - (_fading_step*((_initial_colors[6]-(float)_target_colors[6])/_fading_max_steps)));
-}
 
 /* ----------------------------------------------------------------------- */
 /* Motor methods.                                                          */
@@ -678,7 +663,7 @@ enum MotorType MendeleevClass::getMotorType(enum Motors motor)
         }
         default:
         DEBUG_PRINTLN("Unknown motor slot");
-        return MOTORTYPE_0;
+        return MOTORTYPE_NONE;
     }
 
     return (enum MotorType)type;
@@ -777,4 +762,134 @@ uint8_t MendeleevClass::_getAddress()
 uint8_t MendeleevClass::_getConfig()
 {
     return !_mcp.digitalRead(DIPSW7_PIN);
+}
+
+uint16_t MendeleevClass::_crc16(uint8_t *buffer, uint16_t buffer_length)
+{
+    uint8_t crc_hi = 0xFF; /* high CRC byte initialized */
+    uint8_t crc_lo = 0xFF; /* low CRC byte initialized */
+    unsigned int i; /* will index into CRC lookup */
+
+    /* pass through message buffer */
+    while (buffer_length--) {
+        i = crc_hi ^ *buffer++; /* calculate the CRC  */
+        crc_hi = crc_lo ^ table_crc_hi[i];
+        crc_lo = table_crc_lo[i];
+    }
+
+    return (crc_hi << 8 | crc_lo);
+}
+
+void MendeleevClass::_parse(uint8_t *buf, uint16_t *len)
+{
+    if (*len < PACKET_OVERHEAD) {
+        /* The packet is not complete yet */
+        return;
+    }
+
+    /* Check if packet is for me */
+    if (buf[PACKET_DEST_OFFSET] != _addr && buf[PACKET_DEST_OFFSET] != BROADCAST_ADDR) {
+        DEBUG_PRINT("Destination is ");
+        DEBUG_PRINTHEX(buf[PACKET_DEST_OFFSET]);
+        DEBUG_PRINT(". My address is ");
+        DEBUG_PRINTHEX(_addr);
+        DEBUG_PRINTLN(".");
+        *len = 0;
+        return;
+    }
+
+    /* Check the command field */
+    if (buf[PACKET_CMD_OFFSET] >= COMMAND_MAX) {
+        DEBUG_PRINTLN("Invalid command");
+        *len = 0;
+        return;
+    }
+
+    /* Check if we have a command handler for this command */
+    enum Commands cmd = (enum Commands)buf[PACKET_CMD_OFFSET];
+
+    if (_callbacks[cmd] == NULL) {
+        DEBUG_PRINTLN("No callback registered for this command");
+        *len = 0;
+        return;
+    }
+
+    /* Check if we have the full payload */
+    uint16_t datalen = ((buf[PACKET_LEN_OFFSET] << 8) | buf[PACKET_LEN_OFFSET + 1]);
+
+    if ((datalen + PACKET_OVERHEAD) > *len) {
+        /* Not everything received yet */
+        return;
+    }
+
+    /* Check the checksum */
+    uint16_t cksm_received = ((buf[PACKET_DATA_OFFSET + datalen] << 8) | buf[PACKET_DATA_OFFSET + datalen + 1]);
+    uint16_t cksm_calculated = _crc16(buf + PACKET_DEST_OFFSET, PACKET_DATA_OFFSET + datalen - PACKET_PREAMBLE_SIZE);
+
+    if (cksm_received != cksm_calculated) {
+        DEBUG_PRINT("ERROR CRC received ");
+        DEBUG_PRINTHEX(cksm_received);
+        DEBUG_PRINT(" ");
+        DEBUG_PRINTHEX(cksm_calculated);
+        DEBUG_PRINTLN("");
+        *len = 0;
+        return;
+    }
+
+    /* Run callback */
+    bool cb_success = (*_callbacks[cmd])(buf + PACKET_DATA_OFFSET, &datalen);
+
+    /* Send response if necessary */
+    bool is_broadcast = (buf[PACKET_DEST_OFFSET] == BROADCAST_ADDR);
+
+    if (!is_broadcast) {
+        buf[PACKET_DEST_OFFSET] = buf[PACKET_SRC_OFFSET];
+        buf[PACKET_SRC_OFFSET] = _addr;
+        if (!cb_success) {
+            buf[PACKET_CMD_OFFSET] = ~buf[PACKET_CMD_OFFSET];
+        }
+        buf[PACKET_LEN_OFFSET] = datalen >> 8;
+        buf[PACKET_LEN_OFFSET + 1] = datalen & 0x00FF;
+        uint16_t chksm = _crc16(buf + PACKET_DEST_OFFSET, PACKET_DATA_OFFSET + datalen - PACKET_PREAMBLE_SIZE);
+        buf[PACKET_DATA_OFFSET + datalen] = chksm >> 8;
+        buf[PACKET_DATA_OFFSET + datalen + 1] = chksm & 0x00FF;
+        RS485Write(buf, PACKET_OVERHEAD + datalen);
+    }
+    *len = 0;
+}
+
+void MendeleevClass::_fade()
+{
+    _current_colors.red = (uint16_t)(_initial_colors.red - (_fading_step*((_initial_colors.red-(float)_target_colors.red)/_fading_max_steps)));
+    _current_colors.green = (uint16_t)(_initial_colors.green - (_fading_step*((_initial_colors.green-(float)_target_colors.green)/_fading_max_steps)));
+    _current_colors.blue =  (uint16_t)(_initial_colors.blue - (_fading_step*((_initial_colors.blue-(float)_target_colors.blue)/_fading_max_steps)));
+    _current_colors.alpha = (uint16_t)(_initial_colors.alpha - (_fading_step*((_initial_colors.alpha-(float)_target_colors.alpha)/_fading_max_steps)));
+    _current_colors.white = (uint16_t)(_initial_colors.white - (_fading_step*((_initial_colors.white-(float)_target_colors.white)/_fading_max_steps)));
+    _current_colors.uv = (uint16_t)(_initial_colors.uv - (_fading_step*((_initial_colors.uv-(float)_target_colors.uv)/_fading_max_steps)));
+    _current_colors.text = (uint16_t)(_initial_colors.text - (_fading_step*((_initial_colors.text-(float)_target_colors.text)/_fading_max_steps)));
+    _current_colors.motor1led = (uint16_t)(_initial_colors.motor1led - (_fading_step*((_initial_colors.motor1led-(float)_target_colors.motor1led)/_fading_max_steps)));
+    _current_colors.motor2led = (uint16_t)(_initial_colors.motor2led - (_fading_step*((_initial_colors.motor2led-(float)_target_colors.motor2led)/_fading_max_steps)));
+}
+
+void MendeleevClass::_stopAnimation()
+{
+    if (!_animating) return;
+    DEBUG_PRINTLN("Stopping animation");
+
+    /* deactivate all outputs */
+    setOutput(OUTPUT_0, 0);
+    setOutput(OUTPUT_1, 0);
+    setOutput(OUTPUT_2, 0);
+    setOutput(OUTPUT_3, 0);
+
+    /* deactivate all leds */
+    fadeColor(0, 0, 0, 0, 0, 0, 0);
+    fadeMotorLed(MOTOR_1, 0);
+    fadeMotorLed(MOTOR_2, 0);
+
+    /* deactivate motors */
+    // _stepper1->disableOutputs();
+    // _stepper2->disableOutputs();
+
+    _animating = false;
 }

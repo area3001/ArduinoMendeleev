@@ -15,6 +15,20 @@
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #include <Adafruit_MCP23017.h>
+#include <AccelStepper.h>
+
+/* Debug defines */
+#ifdef DEBUG
+ #define DEBUG_PRINTLN(x)  SerialUSB.println(x)
+ #define DEBUG_PRINT(x)    SerialUSB.print(x)
+ #define DEBUG_PRINTDEC(x) SerialUSB.print(x, DEC)
+ #define DEBUG_PRINTHEX(x) SerialUSB.print(x, HEX)
+#else
+ #define DEBUG_PRINTLN(x)
+ #define DEBUG_PRINT(x)
+ #define DEBUG_PRINTDEC(x)
+ #define DEBUG_PRINTHEX(x)
+#endif
 
 #define BUFF_MAX (0xFF)
 
@@ -62,7 +76,7 @@ enum Motors {
  * motor types
  */
 enum MotorType {
-    MOTORTYPE_0, /* No motor board installed */
+    MOTORTYPE_NONE, /* No motor board installed */
     MOTORTYPE_1,
     MOTORTYPE_2,
     MOTORTYPE_3
@@ -195,6 +209,18 @@ enum PeriodicElement {
 
 typedef bool (*CommandCallback)(uint8_t *data, uint16_t *len);
 
+typedef struct _ledcolors {
+    uint16_t red;
+    uint16_t green;
+    uint16_t blue;
+    uint16_t alpha;
+    uint16_t white;
+    uint16_t uv;
+    uint16_t text;
+    uint16_t motor1led;
+    uint16_t motor2led;
+} LedColors;
+
 class MendeleevClass
 {
 public:
@@ -205,6 +231,8 @@ public:
      * @return void
      */
     void init();
+
+    uint8_t getAddress();
 
     /**
      * @brief Connect to RS485. With default configuration SERIAL_8N1.
@@ -338,6 +366,9 @@ public:
     void setUv(uint8_t value);
     void fadeUv(uint8_t value);
 
+    void setMotorLed(enum Motors motor, uint8_t value);
+    void fadeMotorLed(enum Motors motor, uint8_t value);
+
     // TODO: fade to color functions?
     // void setFadingSpeed(uint16_t speedTime);
 
@@ -362,6 +393,8 @@ public:
     // heartbeat
     void tick();
 
+    void startAnimation();
+
 protected:
     uint8_t _addr; ///< the address of this board
     enum MotorType _slot1Type;
@@ -371,22 +404,27 @@ protected:
 private:
     uint8_t _dataBuffer[BUFF_MAX];
     Adafruit_MCP23017 _mcp;
+    AccelStepper *_stepper1;
+    AccelStepper *_stepper2;
 
     // TODO: use a struct instead of an array to make it more readable?
-    uint16_t _current_colors[7]; /* R, G, B, A, W, UV, TXT */
-    uint16_t _initial_colors[7]; // Used when fading.
-    uint16_t _target_colors[7];  // Used when fading.
-    uint16_t _fading_step;      // Current step of the fading.
-    uint16_t _fading_max_steps; // The total number of steps when fading.
-    uint16_t _fading_step_time; // The number of ms between two variation of color when fading.
-    bool _fading;               // Are we fading now ?
-    unsigned long _last_update; // Last time we did something.
-    void _fade();               // Used internaly to fade
+    LedColors _current_colors; /* R, G, B, A, W, UV, TXT, Motor 1 LED, Motor 2 LED */
+    LedColors _initial_colors; // Used when fading.
+    LedColors _target_colors;  // Used when fading.
+    uint16_t _fading_step;       // Current step of the fading.
+    uint16_t _fading_max_steps;  // The total number of steps when fading.
+    uint16_t _fading_step_time;  // The number of ms between two variation of color when fading.
+    bool _fading;                // Are we fading now ?
+    unsigned long _last_update;  // Last time we did something.
+    void _fade();                // Used internaly to fade
 
     uint8_t _getAddress();
     uint8_t _getConfig();
     void _parse(uint8_t *buf, uint16_t* len);
     uint16_t _crc16(uint8_t *buf, uint16_t len);
+    void _stopAnimation();
+    bool _animating;
+    unsigned long _animationStartTime;
 };
 
 extern MendeleevClass Mendeleev;

@@ -15,9 +15,6 @@
 #define VERSION "Unknown version"
 #endif
 
-int led = 6;
-bool changed = false;
-
 /* Counter for OTA */
 int read = 0;
 
@@ -26,7 +23,7 @@ int read = 0;
 /* ----------------------------------------------------------------------- */
 bool setOutputCallback(uint8_t *data, uint16_t *len)
 {
-    SerialUSB.println("set output callback");
+    DEBUG_PRINTLN("set output callback");
 
     if (*len != 2) {
         *len = 0;
@@ -52,7 +49,7 @@ bool setOutputCallback(uint8_t *data, uint16_t *len)
 
 bool setColorCallback(uint8_t *data, uint16_t *len)
 {
-    SerialUSB.println("set color callback");
+    DEBUG_PRINTLN("set color callback");
 
     if (*len > 7) {
         *len = 0;
@@ -71,7 +68,7 @@ bool setColorCallback(uint8_t *data, uint16_t *len)
 
 bool setModeCallback(uint8_t *data, uint16_t *len)
 {
-    SerialUSB.println("set mode callback");
+    DEBUG_PRINTLN("set mode callback");
     if (*len != 1) {
         *len = 0;
         return false;
@@ -92,10 +89,29 @@ bool setModeCallback(uint8_t *data, uint16_t *len)
 
 bool otaCallback(uint8_t *data, uint16_t *len)
 {
-    SerialUSB.println("OTA callback");
+    DEBUG_PRINTLN("OTA callback");
+
+    if (*len < 4) {
+        DEBUG_PRINTLN("Did not receive full file length yet");
+        return true;
+    }
+
     int i = 0;
-    uint16_t remaining = ((data[0] << 8) | data[1]);
-    i += 2;
+    uint16_t index = ((data[0] << 8) | data[1]);
+    uint16_t remaining = ((data[2] << 8) | data[3]);
+    i += 4;
+
+    if (read != index) {
+        DEBUG_PRINT("Restart of index! ");
+        DEBUG_PRINTDEC(read);
+        DEBUG_PRINT(" ");
+        DEBUG_PRINTDEC(index);
+        DEBUG_PRINTLN(".");
+        InternalStorage.close();
+        read = 0;
+        *len = 0;
+        return false;
+    }
 
     if (read == 0) {
         InternalStorage.open();
@@ -108,7 +124,7 @@ bool otaCallback(uint8_t *data, uint16_t *len)
             read++;
         }
         else {
-            SerialUSB.println("Internal storage is full");
+            DEBUG_PRINTLN("Internal storage is full");
             InternalStorage.close();
             read = 0;
             *len = 0;
@@ -119,18 +135,19 @@ bool otaCallback(uint8_t *data, uint16_t *len)
     *len = 0;
 
     if (remaining != 0) {
-        SerialUSB.println("Waiting for next packet");
+        DEBUG_PRINTLN("Waiting for next packet");
         return true;
     }
     else {
-        SerialUSB.print("Applying the update. Length = ");
-        SerialUSB.println(read, DEC);
+        DEBUG_PRINT("Applying the update. Length = ");
+        DEBUG_PRINTDEC(read);
+        DEBUG_PRINTLN(".");
         InternalStorage.close();
         InternalStorage.apply();
         while (true);
     }
 
-    SerialUSB.println("We should never get here");
+    DEBUG_PRINTLN("We should never get here");
     read = 0;
     InternalStorage.clear();
     return false;
@@ -138,7 +155,7 @@ bool otaCallback(uint8_t *data, uint16_t *len)
 
 bool getVersionCallback(uint8_t *data, uint16_t *len)
 {
-    SerialUSB.println("get version callback");
+    DEBUG_PRINTLN("get version callback");
     *len = sizeof(VERSION);
     strncpy((char *)data, VERSION, sizeof(VERSION));
     return true;
@@ -149,46 +166,45 @@ bool getVersionCallback(uint8_t *data, uint16_t *len)
 /* ----------------------------------------------------------------------- */
 void input0Handler()
 {
-    SerialUSB.println("Input 0 interrupt handler");
+    DEBUG_PRINTLN("Input 0 interrupt handler");
 }
 
 void input1Handler()
 {
-    SerialUSB.println("Input 1 interrupt handler");
+    DEBUG_PRINTLN("Input 1 interrupt handler");
 }
 
 void input2Handler()
 {
-    SerialUSB.println("Input 2 interrupt handler");
+    DEBUG_PRINTLN("Input 2 interrupt handler");
 }
 
 void input3Handler()
 {
-    SerialUSB.println("Input 3 interrupt handler");
+    DEBUG_PRINTLN("Input 3 interrupt handler");
 }
 
 void proximityHandler()
 {
-    SerialUSB.println("Proximity interrupt handler");
-    led++;
-    led = led % 7;
-    changed = true;
+    DEBUG_PRINTLN("Proximity interrupt handler");
+    Mendeleev.startAnimation();
 }
 
 /* ----------------------------------------------------------------------- */
 /* Setup                                                                   */
 /* ----------------------------------------------------------------------- */
 void setup() {
-#ifdef DEBUG
-    /* Wait until the debug terminal is connected */
-    while (!SerialUSB);
-#endif
+// #ifdef DEBUG
+//     /* Wait until the debug terminal is connected */
+//     while (!SerialUSB);
+// #endif
     SerialUSB.begin(115200);
-    SerialUSB.println("Hello Mendeleev!");
-    SerialUSB.print("Version "); SerialUSB.println(VERSION);
+    DEBUG_PRINTLN("Hello Mendeleev!");
+    DEBUG_PRINT("Version: "); DEBUG_PRINTLN(VERSION);
 
     /* Initialize Mendeleev board */
     Mendeleev.init();
+    DEBUG_PRINT("Address: "); DEBUG_PRINTDEC(Mendeleev.getAddress()); DEBUG_PRINTLN(".");
     Mendeleev.RS485Begin(38400);
 
     /* Register handler functions for RS485 commands */
@@ -211,34 +227,4 @@ void setup() {
 /* ----------------------------------------------------------------------- */
 void loop() {
     Mendeleev.tick();
-
-    if (changed) {
-        changed = false;
-        switch(led) {
-            case 0:
-                Mendeleev.fadeColor(50, 0, 0, 0, 0, 0, 0);
-                break;
-            case 1:
-                Mendeleev.fadeColor(0, 50, 0, 0, 0, 0, 0);
-                break;
-            case 2:
-                Mendeleev.fadeColor(0, 0, 50, 0, 0, 0, 0);
-                break;
-            case 3:
-                Mendeleev.fadeColor(0, 0, 0, 50, 0, 0, 0);
-                break;
-            case 4:
-                Mendeleev.fadeColor(0, 0, 0, 0, 50, 0, 0);
-                break;
-            case 5:
-                Mendeleev.fadeColor(0, 0, 0, 0, 0, 50, 0);
-                break;
-            case 6:
-                Mendeleev.fadeColor(0, 0, 0, 0, 0, 0, 50);
-                break;
-            default:
-                Mendeleev.fadeColor(0, 0, 0, 0, 0, 0, 0);
-                break;
-        }
-    }
 }
