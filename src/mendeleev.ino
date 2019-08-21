@@ -254,13 +254,22 @@ void displayBert(uint8_t address) {
     if(isInBert(address)) {
         Mendeleev.setColor(255, 0, 0, 0, 0, 0, 0);
         Mendeleev.tick();
-        delay(1000);
+        delay(500);
         Mendeleev.setColor(0, 255, 0, 0, 0, 0, 0);
         Mendeleev.tick();
-        delay(1000);
+        delay(500);
         Mendeleev.setColor(0, 0, 255, 0, 0, 0, 0);
         Mendeleev.tick();
-        delay(1000);
+        delay(500);
+        Mendeleev.setColor(255, 0, 0, 0, 0, 0, 0);
+        Mendeleev.tick();
+        delay(500);
+        Mendeleev.setColor(0, 255, 0, 0, 0, 0, 0);
+        Mendeleev.tick();
+        delay(500);
+        Mendeleev.setColor(0, 0, 255, 0, 0, 0, 0);
+        Mendeleev.tick();
+        delay(500);
         Mendeleev.setColor(0, 0, 0, 0, 0, 0, 0);
         Mendeleev.tick();
     }
