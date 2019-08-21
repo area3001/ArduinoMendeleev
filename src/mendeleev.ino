@@ -18,6 +18,7 @@
 /* Counter for OTA */
 int read = 0;
 bool doUpdate = false;
+bool doReboot = false;
 
 /* ----------------------------------------------------------------------- */
 /* RS485 command callbacks                                                 */
@@ -153,6 +154,14 @@ bool getVersionCallback(uint8_t *data, uint16_t *len)
     return true;
 }
 
+bool rebootCallback(uint8_t *data, uint16_t *len)
+{
+    DEBUG_PRINTLN("reboot callback");
+    doReboot = true;
+    *len = 0;
+    return true;
+}
+
 /* ----------------------------------------------------------------------- */
 /* Input interrupt handlers                                                */
 /* ----------------------------------------------------------------------- */
@@ -285,6 +294,7 @@ void setup() {
     Mendeleev.registerCallback(COMMAND_OTA,         &otaCallback);
     Mendeleev.registerCallback(COMMAND_GET_VERSION, &getVersionCallback);
     Mendeleev.registerCallback(COMMAND_SET_OUTPUT,  &setOutputCallback);
+    Mendeleev.registerCallback(COMMAND_REBOOT,      &rebootCallback);
 
     /* Attach interrupt handlers to the inputs */
     Mendeleev.attachInputInterrupt(INPUT_0, input0Handler, CHANGE);
@@ -302,6 +312,11 @@ void loop() {
     if (doUpdate) {
         DEBUG_PRINTLN("Executing firmware update");
         InternalStorage.apply();
+        while (true);
+    }
+    if (doReboot) {
+        DEBUG_PRINTLN("Rebooting...");
+        NVIC_SystemReset();
         while (true);
     }
 }

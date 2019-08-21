@@ -41,7 +41,8 @@ enum Commands {
     COMMAND_OTA = 0x02,
     COMMAND_GET_VERSION = 0x03,
     COMMAND_SET_OUTPUT = 0x04,
-    COMMAND_MAX = 0x05
+    COMMAND_REBOOT = 0x05,
+    COMMAND_MAX = 0x06
 };
 
 /*
