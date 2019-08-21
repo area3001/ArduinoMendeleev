@@ -17,6 +17,7 @@
 
 /* Counter for OTA */
 int read = 0;
+bool doUpdate = false;
 
 /* ----------------------------------------------------------------------- */
 /* RS485 command callbacks                                                 */
@@ -92,7 +93,7 @@ bool otaCallback(uint8_t *data, uint16_t *len)
     DEBUG_PRINTLN("OTA callback");
 
     if (*len < 4) {
-        DEBUG_PRINTLN("Did not receive full file length yet");
+        DEBUG_PRINTLN("Did not receive full frame header yet");
         return true;
     }
 
@@ -102,11 +103,8 @@ bool otaCallback(uint8_t *data, uint16_t *len)
     i += 4;
 
     if (read != index) {
-        DEBUG_PRINT("Restart of index! ");
-        DEBUG_PRINTDEC(read);
-        DEBUG_PRINT(" ");
-        DEBUG_PRINTDEC(index);
-        DEBUG_PRINTLN(".");
+        DEBUG_PRINTLN("OTA ERROR: restart of index!");
+        InternalStorage.clear();
         InternalStorage.close();
         read = 0;
         *len = 0;
@@ -124,7 +122,8 @@ bool otaCallback(uint8_t *data, uint16_t *len)
             read++;
         }
         else {
-            DEBUG_PRINTLN("Internal storage is full");
+            DEBUG_PRINTLN("OTA ERROR: Internal storage is full");
+            InternalStorage.clear();
             InternalStorage.close();
             read = 0;
             *len = 0;
@@ -139,18 +138,11 @@ bool otaCallback(uint8_t *data, uint16_t *len)
         return true;
     }
     else {
-        DEBUG_PRINT("Applying the update. Length = ");
-        DEBUG_PRINTDEC(read);
-        DEBUG_PRINTLN(".");
+        DEBUG_PRINTLN("Scheduling the update");
         InternalStorage.close();
-        InternalStorage.apply();
-        while (true);
+        doUpdate = true;
+        return true;
     }
-
-    DEBUG_PRINTLN("We should never get here");
-    read = 0;
-    InternalStorage.clear();
-    return false;
 }
 
 bool getVersionCallback(uint8_t *data, uint16_t *len)
@@ -254,10 +246,10 @@ void displayBert(uint8_t address) {
         Mendeleev.setColor(255, 0, 0, 0, 0, 0, 0);
         Mendeleev.tick();
         delay(1000);
-        Mendeleev.setColor(255, 0, 0, 0, 0, 0, 0);
+        Mendeleev.setColor(0, 255, 0, 0, 0, 0, 0);
         Mendeleev.tick();
         delay(1000);
-        Mendeleev.setColor(255, 0, 0, 0, 0, 0, 0);
+        Mendeleev.setColor(0, 0, 255, 0, 0, 0, 0);
         Mendeleev.tick();
         delay(1000);
         Mendeleev.setColor(0, 0, 0, 0, 0, 0, 0);
@@ -307,4 +299,9 @@ void setup() {
 /* ----------------------------------------------------------------------- */
 void loop() {
     Mendeleev.tick();
+    if (doUpdate) {
+        DEBUG_PRINTLN("Executing firmware update");
+        InternalStorage.apply();
+        while (true);
+    }
 }
