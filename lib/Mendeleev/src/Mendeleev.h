@@ -197,13 +197,13 @@ enum PeriodicElement {
     ELEMENT_Mt  = 109, // Meitnerium
     ELEMENT_Ds  = 110, // Darmstadtium
     ELEMENT_Rg  = 111, // Roentgenium
-    ELEMENT_Uub = 112, // Ununbium
-    ELEMENT_Uut = 113, // Ununtrium
-    ELEMENT_Uuq = 114, // Ununquadium
-    ELEMENT_Uup = 115, // Ununpentium
-    ELEMENT_Uuh = 116, // Ununhexium
-    ELEMENT_Uus = 117, // Ununseptium
-    ELEMENT_Uuo = 118, // Oganesson
+    ELEMENT_Cp  = 112, // Copernicium
+    ELEMENT_Nh  = 113, // Nihonium
+    ELEMENT_Fl  = 114, // Flerovium
+    ELEMENT_Mc  = 115, // Moscovium
+    ELEMENT_Lv  = 116, // Livermorium
+    ELEMENT_Ts  = 117, // Tennessine
+    ELEMENT_Og  = 118, // Oganesson
     ELEMENT_MAX = 119
 };
 

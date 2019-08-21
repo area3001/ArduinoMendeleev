@@ -190,6 +190,81 @@ void proximityHandler()
     Mendeleev.startAnimation();
 }
 
+bool isInBert(uint8_t id) {
+    switch(id) {
+        /* letter 'b' */
+        case ELEMENT_H:
+        case ELEMENT_Li:
+        case ELEMENT_Na:
+        case ELEMENT_K:
+        case ELEMENT_Rb:
+        case ELEMENT_Cs:
+        case ELEMENT_Fr:
+        case ELEMENT_Ca:
+        case ELEMENT_Sc:
+        case ELEMENT_Ti:
+        case ELEMENT_Zr:
+        case ELEMENT_Hf:
+        case ELEMENT_Rf:
+        case ELEMENT_Lr:
+        case ELEMENT_Ra:
+        /* letter 'e' */
+        case ELEMENT_Fe:
+        case ELEMENT_Rh:
+        case ELEMENT_Ir:
+        case ELEMENT_Os:
+        case ELEMENT_Re:
+        case ELEMENT_Mn:
+        case ELEMENT_Mo:
+        case ELEMENT_W:
+        case ELEMENT_Sg:
+        case ELEMENT_Nd:
+        case ELEMENT_Np:
+        case ELEMENT_Pu:
+        case ELEMENT_Eu:
+        /* letter 'r' */
+        case ELEMENT_Cu:
+        case ELEMENT_Ag:
+        case ELEMENT_Au:
+        case ELEMENT_Rg:
+        case ELEMENT_Tb:
+        case ELEMENT_Bk:
+        case ELEMENT_Cd:
+        case ELEMENT_Ga:
+        /* letter 't' */
+        case ELEMENT_N:
+        case ELEMENT_P:
+        case ELEMENT_As:
+        case ELEMENT_Sb:
+        case ELEMENT_Bi:
+        case ELEMENT_Mc:
+        case ELEMENT_Tm:
+        case ELEMENT_Md:
+        case ELEMENT_No:
+        case ELEMENT_Se:
+        case ELEMENT_Br:
+            return true;
+        default:
+            return false;
+    }
+}
+
+void displayBert(uint8_t address) {
+    if(isInBert(address)) {
+        Mendeleev.setColor(255, 0, 0, 0, 0, 0, 0);
+        Mendeleev.tick();
+        delay(1000);
+        Mendeleev.setColor(255, 0, 0, 0, 0, 0, 0);
+        Mendeleev.tick();
+        delay(1000);
+        Mendeleev.setColor(255, 0, 0, 0, 0, 0, 0);
+        Mendeleev.tick();
+        delay(1000);
+        Mendeleev.setColor(0, 0, 0, 0, 0, 0, 0);
+        Mendeleev.tick();
+    }
+}
+
 /* ----------------------------------------------------------------------- */
 /* Setup                                                                   */
 /* ----------------------------------------------------------------------- */
@@ -204,6 +279,11 @@ void setup() {
 
     /* Initialize Mendeleev board */
     Mendeleev.init();
+
+    /* Boot animation */
+    displayBert(Mendeleev.getAddress());
+
+    /* Start communication */
     DEBUG_PRINT("Address: "); DEBUG_PRINTDEC(Mendeleev.getAddress()); DEBUG_PRINTLN(".");
     Mendeleev.RS485Begin(38400);
 
