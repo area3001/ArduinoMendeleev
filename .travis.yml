@@ -10,8 +10,6 @@ cache:
 install:
   - pip install -U platformio
   - platformio update
-  - platformio run || true
-  - cp -r variant ~/.platformio/packages/framework-arduinosam/variants/mendeleev
 
 script:
   - platformio run
