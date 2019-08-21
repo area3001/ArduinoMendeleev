@@ -76,11 +76,11 @@ bool setModeCallback(uint8_t *data, uint16_t *len)
 
     switch(data[0]) {
         case 1:
-        // set guest mode
-        break;
+            DEBUG_PRINTLN("Set guest mode");
+            break;
         case 2:
-        // set lecturer mode
-        break;
+            DEBUG_PRINTLN("Set lecturer mode");
+            break;
     }
 
     *len = 0;
