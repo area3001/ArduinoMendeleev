@@ -2,6 +2,11 @@ language: python
 python:
   - "2.7"
 
+branches:
+  only:
+  - master
+  - /^v.*$/
+
 sudo: false
 cache:
   directories:
@@ -20,11 +25,8 @@ before_deploy:
 deploy:
   provider: releases
   api_key: $GITHUB_OAUTH_TOKEN
-  file:
-    - ".pioenvs/debug.bin"
-    - ".pioenvs/debug.bin.sha1"
-    - ".pioenvs/release.bin"
-    - ".pioenvs/release.bin.sha1"
+  file_glob: true
+  file: .pioenvs/*.bin*
   skip_cleanup: true
   on:
     repo: area3001/ArduinoMendeleev
