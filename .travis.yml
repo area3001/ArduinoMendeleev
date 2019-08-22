@@ -5,7 +5,7 @@ python:
 branches:
   only:
   - master
-  - /^v.*$/
+  - /^v\d+\.\d+\.\d+(-\S*)?$/
 
 sudo: false
 cache:
