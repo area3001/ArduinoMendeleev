@@ -2,11 +2,13 @@ try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
+
 Import("env")
 
 config = configparser.ConfigParser()
 config.read("platformio.ini")
 configkast = config.get("common", "target_kast").strip().splitlines(False)
+brokerconfig = config.get("common", "broker").strip()
 
 # Python callback
 def on_upload(source, target, env):
@@ -15,12 +17,12 @@ def on_upload(source, target, env):
 
 def on_ota(*args, **kwargs):
     print("on_ota")
-    fota("$BUILD_DIR/firmware.bin", kast, env)
+    fota("$BUILD_DIR/firmware.bin", configkast, env)
 
 def fota(file, kasten, env):
     for kast in kasten:
         print("Uploading %s to element %s..." % (file, kast))
-        env.Execute("cat %s | mosquitto_pub -h 192.168.1.2 -t mendeleev/%s/ota -s" % (file, kast))
+        env.Execute("cat %s | mosquitto_pub -h %s -t mendeleev/%s/ota -s" % (file, brokerconfig, kast))
 
 env.Replace(UPLOADCMD=on_upload)
 env.AlwaysBuild(env.Alias("ota",
