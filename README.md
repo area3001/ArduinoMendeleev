@@ -14,6 +14,58 @@ links:
  * https://hackaday.io/project/164265-mendeleev
  * https://area3001.com/
 
+## Pinmux
+
+| Arduino Pin | MCU PIN | Mendeleev | Comments        |
+|------------|--------|----------------|-----------------|
+| 0          |  PA11  |  M1CTRL0_PIN   | TCC1/WO[1]      |
+| 1          |  PA10  |  M2CTRL0_PIN   | TCC1/WO[0]      |
+| 2          |  PA14  |  PIN_SPI_CS0   |                 |
+| 3          |  PA09  |  M2CTRL1_PIN   |                 |
+| 4          |  PA08  |  M2CTRL2_PIN   | TCC0/WO[0]      |
+| 5          |  PA15  |  LED_R_PIN     | TCC0/WO[5]      |
+| 6          |  PA20  |  LED_UV_PIN    | TCC0/WO[6]      |
+| 7          |  PA21  |  PIN_SPI_CS1   |                 |
+| 8          |  PA06  |  M1CTRL2_PIN   |                 |
+| 9          |  PA07  |  M1CTRL1_PIN   |                 |
+| 10         |  PA18  |  LED_A_PIN     | TC3/WO[0]       |
+| 11         |  PA16  |  LED_G_PIN     | TCC2/WO[0]      |
+| 12         |  PA19  |  LED_W_PIN     | TC3/WO[1]       |
+| 13         |  PA17  |  LED_B_PIN     | TCC2/WO[1]      |
+| 14         |  PA02  |  INPUT2_PIN    | ADC/AIN[0]      |
+| 15         |  PB08  |  INPUT0_PIN    | ADC/AIN[2]      |
+| 16         |  PB09  |  INPUT1_PIN    | ADC/AIN[3]      |
+| 17         |  PA04  |  INPUT3_PIN    | ADC/AIN[4]      |
+| 18         |  PA05  |  PROX_PIN      | ADC/AIN[5]      |
+| 19         |  PB02  |  RS485_DIR_PIN | ADC/AIN[10]     |
+| 20         |  PA22  |  SDA           | SERCOM3/PAD[0]  |
+| 21         |  PA23  |  SCL           | SERCOM3/PAD[1]  |
+| 22         |  PA12  |  MISO          | SERCOM4/PAD[0]  |
+| 23         |  PB10  |  MOSI          | SERCOM4/PAD[2]  |
+| 24         |  PB11  |  SCK           | SERCOM4/PAD[3]  |
+| 25         |  PB03  |                | USB RX LED      |
+| 26         |  PA27  |                | USB TX LED      |
+| 27         |  PA28  |                | USB host enable |
+| 28         |  PA24  |                | USB/DM          |
+| 29         |  PA25  |                | USB/DP          |
+| 30         |  PB22  |  RS485 TX      | SERCOM5/PAD[2]  |
+| 31         |  PB23  |  RS485 RX      | SERCOM5/PAD[3]  |
+| 32         |  PA22  |                | Pin 20 (SDA)    |
+| 33         |  PA23  |                | Pin 21 (SCL)    |
+| 34         |  PA19  |                | SERCOM1/PAD[3]  |
+| 35         |  PA16  |                | SERCOM1/PAD[0]  |
+| 36         |  PA18  |                | SERCOM1/PAD[2]  |
+| 37         |  PA17  |                | SERCOM1/PAD[1]  |
+| 38         |  PA13  |  LED_TXT_PIN   | TCC2/WO[1]      |
+| 39         |  PA21  |                | Pin 7           |
+| 40         |  PA06  |                | Pin 8           |
+| 41         |  PA07  |                | Pin 9           |
+| 42         |  PA03  |                | [ADC|DAC]/VREFA |
+| 43         |  PA02  |                | Alternate use of A0 (DAC output) |
+| 44         |  PA30  |                | TCC1/WO[0]      |
+| 45         |  PA31  |                | TCC1/WO[1]      |
+
+
 ## RS485 Protocol
 | Preamble | Destination | Source | Sequence number | Command | Data length | Data | Checksum |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -28,34 +80,49 @@ links:
  * Data: variable length payload data
  * Checksum: a 2 bytes CRC16 checksum of the frame, excluding the preamble and the checksum
 
-The response frame has exectly the same structure. If the command field value is kept as it is, this means a ```acknowledge``` response. If the command field value is one's complemented, this means a ```not acknowledge``` response.
+The response frame has exectly the same structure. An ```acknowledge``` response is a frame with the same value in the command field as its request frame. If the command field value is one's complemented, this means a ```not acknowledge``` response.
 
 Nodes should not respond to broadcast messages (destination field has the value of ```0xFF```).
 
 ### Commands
 
 #### SET_COLOR (0x00)
-Set the value of the LEDs of the board. The payload is a 3 to 7 byte value:
+Set the value of the LEDs of the board.
+
+The payload is a 3 to 7 byte value, so each LED intensity can be set in 8bit levels:
 
 | Byte 0 | Byte 1 | Byte 2 | Byte 3* | Byte 4* | Byte 5* | Byte 6* |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Red | Green | Blue | White | Warm white | UV | Text leds |
 
-Bytes with * are optional
+Bytes with * are optional.
 
-So the LED light intensity can be set in 8bit levels. It is required to give a value for all LEDs in the payload.
 The response does not have payload data.
 
 #### SET_MODE (0x01)
-Set the mode of the node. There are 2 modes: automatic and teaching mode.
+Set the mode of the node.
+
+The payload data is 1 byte indicating the mode to switch to. There are 2 modes: guest (```0x01```) and teacher (```0x02```) mode.
 
 #### OTA (0x02)
-Send firmware upgrade data to the node. The firmware binary file is split by the mqtt2mendeleev bridge in parts of 236 bytes and sent to the destination node using this command. The first 2 bytes of the payload contain the index of the part. The next 2 bytes containing the remaining amount of bytes to be sent. This way, we know when we completely received the firmware update data and if we receive parts out of order.
-The response does not have payload data.
+Send firmware upgrade data to the node.
+
+The firmware binary file is split by the [mqtt2mendeleev bridge](https://github.com/area3001/mqtt2mendeleev) in parts of 236 bytes and sent to the destination node using this command. The first 2 bytes of the payload contain the index of the part. The next 2 bytes containing the remaining amount of bytes to be sent. This way, we know when we completely received the firmware update data and if we receive parts out of order.
+
+The node should acknowledge the commands before rebooting. The responses do not have payload data.
 
 #### GET_VERSION (0x03)
+Get the firmware version of the node.
+
 There is no payload to call this command. The response contains the bytes of a string that describes the version number.
 
 #### SET_OUTPUT (0x04)
-The payload should be 2 bytes. The first byte indicates a mask of which outputs need to be considered. The second byte contains the value to which the indicated outputs should be toggled.
+Control the 4 outputs of the node.
+
+The payload should be 2 bytes. The first byte indicates a mask of which outputs need to be toggled. The second byte contains the state to which the indicated outputs should be toggled.
 The response does not have payload data.
+
+#### REBOOT (0x05)
+Reboot the node.
+
+There is no payload to call this command. The device should acknowledge the command before rebooting.
