@@ -7,8 +7,8 @@ Import("env")
 
 config = configparser.ConfigParser()
 config.read("platformio.ini")
-configkast = config.get("common", "target_kast").strip().splitlines(False)
-brokerconfig = config.get("common", "broker").strip()
+configkast = config.get("env", "target_kast").strip().splitlines(False)
+brokerconfig = config.get("env", "broker").strip()
 
 # Python callback
 def on_upload(source, target, env):
