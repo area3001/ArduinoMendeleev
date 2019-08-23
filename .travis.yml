@@ -20,13 +20,13 @@ script:
   - platformio run
 
 before_deploy:
-  - for file in .pioenvs/*/firmware.bin; do cp $file ${file%/*}.bin; sha1sum ${file%/*}.bin > ${file%/*}.bin.sha1; done
+  - for file in .pio/build/*/firmware.bin; do cp $file ${file%/*}.bin; sha1sum ${file%/*}.bin > ${file%/*}.bin.sha1; done
 
 deploy:
   provider: releases
   api_key: $GITHUB_OAUTH_TOKEN
   file_glob: true
-  file: .pioenvs/*.bin*
+  file: .pio/build/*/*.bin*
   skip_cleanup: true
   on:
     repo: area3001/ArduinoMendeleev
