@@ -10,9 +10,7 @@
  * Based on https://github.com/claudeheintz/LXSAMD21DMX.git
  */
 
-#include <SPI.h>
 #include "Mendeleev.h"
-#include "wiring_private.h" // TODO: do we need this?
 
 /* RS485 protocol defines
  *

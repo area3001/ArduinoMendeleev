@@ -30,7 +30,7 @@
  #define DEBUG_PRINTHEX(x)
 #endif
 
-#define BUFF_MAX (0xFF)
+#define BUFF_MAX (240)
 
 /*
  * Commands
