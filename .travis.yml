@@ -20,13 +20,13 @@ script:
   - platformio run
 
 before_deploy:
-  - for file in .pio/build/*/*.bin; do cp $file ${file%/*}.bin; sha1sum ${file%/*}.bin > ${file%/*}.bin.sha1; done
+  - for file in .pio/build/*/*.bin; do filename=$(basename ${file%/*}.bin); cp ${file} ${filename}; sha1sum ${filename} > ${filename}.sha1; done
 
 deploy:
   provider: releases
   api_key: $GITHUB_OAUTH_TOKEN
   file_glob: true
-  file: .pio/build/*.bin*
+  file: ./*.bin*
   skip_cleanup: true
   on:
     repo: area3001/ArduinoMendeleev
