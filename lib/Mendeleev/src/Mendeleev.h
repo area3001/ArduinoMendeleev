@@ -15,7 +15,6 @@
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #include <Adafruit_MCP23017.h>
-#include <AccelStepper.h>
 
 /* Debug defines */
 #ifdef DEBUG
@@ -403,10 +402,9 @@ protected:
     CommandCallback _callbacks[COMMAND_MAX]; ///< the array of callback functions
 
 private:
+    uint8_t _motor_direction = HIGH;
     uint8_t _dataBuffer[BUFF_MAX];
     Adafruit_MCP23017 _mcp;
-    AccelStepper *_stepper1;
-    AccelStepper *_stepper2;
 
     // TODO: use a struct instead of an array to make it more readable?
     LedColors _current_colors; /* R, G, B, A, W, UV, TXT, Motor 1 LED, Motor 2 LED */

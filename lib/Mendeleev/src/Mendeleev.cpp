@@ -179,12 +179,12 @@ void MendeleevClass::init()
     // pinPeripheral(M2CTRL0_PIN, PIO_DIGITAL);
 
     pinMode(M1CTRL0_PIN, OUTPUT); // led
-    // pinMode(M1CTRL1_PIN, OUTPUT); // dir
-    // pinMode(M1CTRL2_PIN, OUTPUT); // step
+    pinMode(M1CTRL1_PIN, OUTPUT); // dir
+    pinMode(M1CTRL2_PIN, OUTPUT); // step
 
     pinMode(M2CTRL0_PIN, OUTPUT); // led
-    // pinMode(M2CTRL1_PIN, OUTPUT); // dir
-    // pinMode(M2CTRL2_PIN, OUTPUT); // step
+    pinMode(M2CTRL1_PIN, OUTPUT); // dir
+    pinMode(M2CTRL2_PIN, OUTPUT); // step
 
     /* Set up Input pins */
     pinMode(INPUT0_PIN, INPUT);
@@ -257,24 +257,15 @@ void MendeleevClass::init()
     DEBUG_PRINT("Motor type slot 1: "); DEBUG_PRINTDEC(_slot1Type); DEBUG_PRINTLN(".");
     if (_slot1Type != MOTORTYPE_NONE) {
         DEBUG_PRINTLN("Creating stepper in slot 1");
-        _stepper1 = new AccelStepper(AccelStepper::DRIVER, M1CTRL2_PIN, M1CTRL1_PIN);
-        _stepper1->setMaxSpeed(100);
-        _stepper1->setSpeed(50);
+        digitalWrite(M1CTRL1_PIN, _motor_direction);
     }
-    // digitalWrite(M1CTRL1_PIN, LOW);
-    // digitalWrite(M1CTRL2_PIN, LOW);
 
     _slot2Type = getMotorType(MOTOR_2);
     DEBUG_PRINT("Motor type slot 2: "); DEBUG_PRINTDEC(_slot2Type); DEBUG_PRINTLN(".");
     if (_slot2Type != MOTORTYPE_NONE) {
         DEBUG_PRINTLN("Creating stepper in slot 2");
-        _stepper2 = new AccelStepper(AccelStepper::DRIVER, M2CTRL2_PIN, M2CTRL1_PIN);
-        _stepper2->setMaxSpeed(100);
-        _stepper2->setSpeed(50);
+        digitalWrite(M2CTRL1_PIN, _motor_direction);
     }
-
-    // digitalWrite(M2CTRL1_PIN, LOW);
-    // digitalWrite(M2CTRL2_PIN, LOW);
 
     /* Set all LEDs of at boot */
     _current_colors.red = 0;
@@ -464,14 +455,10 @@ void MendeleevClass::tick()
     analogWrite(M1CTRL0_PIN, _current_colors.motor1led);
     analogWrite(M2CTRL0_PIN, _current_colors.motor2led);
 
-    /* Stepper motors */
-    // _stepper1->runSpeed();
-    // _stepper2->runSpeed();
-
     /* check animation timeout */
-    // if ((long) (millis() - _animationStartTime) >= ANIMATION_TIMEOUT) {
-    //     _stopAnimation();
-    // }
+    if ((long) (millis() - _animationStartTime) >= ANIMATION_TIMEOUT) {
+        _stopAnimation();
+    }
 }
 
 void MendeleevClass::startAnimation()
@@ -495,12 +482,12 @@ void MendeleevClass::startAnimation()
     fadeMotorLed(MOTOR_1, 255);
     fadeMotorLed(MOTOR_2, 255);
 
-
     DEBUG_PRINTLN("Leds faded");
     /* activate motors */
-    // _stepper1->enableOutputs();
-    // _stepper2->enableOutputs();
-    // DEBUG_PRINTLN("Enabled motors");
+    tone(M1CTRL2_PIN, 10000);
+    tone(M2CTRL2_PIN, 10000);
+
+    DEBUG_PRINTLN("Motors activated");
 }
 
 /* ----------------------------------------------------------------------- */
@@ -886,8 +873,13 @@ void MendeleevClass::_stopAnimation()
     fadeMotorLed(MOTOR_2, 0);
 
     /* deactivate motors */
-    // _stepper1->disableOutputs();
-    // _stepper2->disableOutputs();
+    noTone(M1CTRL2_PIN);
+    noTone(M2CTRL2_PIN);
+
+    /* toggle direction */
+    _motor_direction = !_motor_direction;
+    digitalWrite(M1CTRL1_PIN, _motor_direction);
+    digitalWrite(M2CTRL1_PIN, _motor_direction);
 
     _animating = false;
 }
