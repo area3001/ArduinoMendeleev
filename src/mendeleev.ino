@@ -9,18 +9,13 @@
  */
 
 #include <Mendeleev.h>
-#include <InternalStorage.h>
+#include <MendeleevOta.h>
 
 #ifndef VERSION
 #define VERSION "Unknown version"
 #endif
 
-int read = 0;                          /* Counter indicating OTA progress */
-bool doUpdate = false;                 /* flag to trigger an update */
-bool otaInProgress = false;
 bool doReboot = false;                 /* flasg to trigger a reboot */
-unsigned long lastOTAmsg;              /* last time an OTA message was received and processed */
-const unsigned long OTA_TIMEOUT(5000); /* Timeout of OTA */
 
 /* ----------------------------------------------------------------------- */
 /* RS485 command callbacks                                                 */
@@ -103,81 +98,19 @@ bool otaCallback(uint8_t *data, uint16_t *len)
 {
     DEBUG_PRINTLN("OTA callback");
 
-    /* We expect at least 4 bytes */
-    if (*len < 4) {
-        DEBUG_PRINTLN("Did not receive full frame header yet");
-        return true;
+    /* We expect at least 1 byte for the index */
+    if (*len < 2) {
+        DEBUG_PRINTLN("OTA: Did not receive valid message!");
+        *len = 0;
+        return false;
     }
 
-    int i = 0;
-    uint16_t index = ((data[0] << 8) | data[1]);     // index of the current frame
-    uint16_t remaining = ((data[2] << 8) | data[3]); // remaining bytes of the firmware file to be sent
-    i += 4;
+    uint8_t idx = data[0];
 
-    /*
-     * check if the frame index of
-     * the new packet follows what
-     * was previously received
-     */
-    if (read != index) {
-        DEBUG_PRINTLN("OTA ERROR: restart of index!");
-        InternalStorage.clear();
-        InternalStorage.close();
-        read = 0;
-        otaInProgress = false;
-        /* is it a start of a new update? */
-        if (index != 0) {
-            *len = 0;
-            return false;
-        }
-    }
-
-    /* new update trigger */
-    if (read == 0) {
-        InternalStorage.open();
-    }
-
-    /* read the frame data to internal storage */
-    while (i < *len) {
-        if (read < InternalStorage.maxSize()) {
-            InternalStorage.write((char)data[i++]);
-            remaining--;
-            read++;
-        }
-        else {
-            DEBUG_PRINTLN("OTA ERROR: Internal storage is full");
-            InternalStorage.clear();
-            InternalStorage.close();
-            otaInProgress = false;
-            read = 0;
-            *len = 0;
-            return false;
-        }
-    }
+    enum OtaError err = MendeleevOta.write(idx, &data[1], (*len) - 1);
 
     *len = 0;
-
-    /*
-     * Did we receive the last frame or
-     * do we expect more frames to follow?
-     */
-    if (remaining != 0) {
-        DEBUG_PRINTLN("Waiting for next packet");
-    }
-    else {
-        DEBUG_PRINTLN("Scheduling the update");
-        InternalStorage.close();
-        doUpdate = true;
-    }
-
-    otaInProgress = true;
-
-    /*
-     * update the timestamp used
-     * to check the OTA timeout
-     */
-    lastOTAmsg = millis();
-    return true;
+    return (err == ERROR_NO_ERROR);
 }
 
 bool getVersionCallback(uint8_t *data, uint16_t *len)
@@ -447,10 +380,13 @@ void setup() {
 
     /* Initialize Mendeleev board */
     Mendeleev.init();
+    MendeleevOta.init();
 
+#ifdef DEBUG
     /* get node address */
     uint8_t address = Mendeleev.getAddress();
     DEBUG_PRINT("Address: "); DEBUG_PRINTDEC(address); DEBUG_PRINTLN(".");
+#endif
 
     /* Boot animation */
     displayName(&isInBert, address);
@@ -484,24 +420,7 @@ void setup() {
 void loop() {
     /* tick the mendeleev lib */
     Mendeleev.tick();
-
-    /* check the update flag */
-    if (doUpdate) {
-        DEBUG_PRINTLN("Executing firmware update");
-        InternalStorage.apply();
-        otaInProgress = false;
-        while (true);
-    }
-    else if (otaInProgress) {
-        unsigned long ms = millis();
-        if ((ms - lastOTAmsg) >= OTA_TIMEOUT) {
-            DEBUG_PRINTLN("OTA ERROR: Did not receive remaining frames for 5 seconds");
-            InternalStorage.clear();
-            InternalStorage.close();
-            otaInProgress = false;
-            read = 0;
-        }
-    }
+    MendeleevOta.tick();
 
     /* check the reboot flag */
     if (doReboot) {
