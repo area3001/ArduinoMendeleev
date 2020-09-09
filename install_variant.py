@@ -2,7 +2,7 @@ from os.path import join, isdir
 
 Import("env")
 
-FRAMEWORK_DIR = env.PioPlatform().get_package_dir("framework-arduinosam")
+FRAMEWORK_DIR = env.PioPlatform().get_package_dir("framework-arduino-samd")
 
 # skip patch process if we did it before
 if not isdir(join(FRAMEWORK_DIR, "variants", "mendeleev")):

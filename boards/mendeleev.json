@@ -1,6 +1,6 @@
 {
   "build": {
-    "core": "samd",
+    "core": "arduino",
     "cpu": "cortex-m0plus",
     "extra_flags": "-DARDUINO_SAMD_ZERO -DARDUINO_ARCH_SAMD -D__SAMD21G18A__",
     "f_cpu": "48000000L",
@@ -18,7 +18,9 @@
         "0x824D"
       ]
     ],
-    "ldscript": "flash_with_bootloader.ld",
+    "arduino": {
+      "ldscript": "flash_with_bootloader.ld"
+    },
     "mcu": "samd21g18a",
     "usb_product": "Arduino Zero",
     "variant": "mendeleev"
@@ -52,6 +54,6 @@
     "use_1200bps_touch": true,
     "wait_for_upload_port": true
   },
-  "url": "https://www.arduino.cc/en/Main/ArduinoBoardZero",
+  "url": "https://github.com/area3001/ArduinoMendeleev",
   "vendor": "Area3001"
 }
