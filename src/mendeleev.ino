@@ -15,7 +15,7 @@
 #define VERSION "Unknown version"
 #endif
 
-bool doReboot = false;                 /* flasg to trigger a reboot */
+bool doReboot = false;                 /* flag to trigger a reboot */
 
 /* ----------------------------------------------------------------------- */
 /* RS485 command callbacks                                                 */
@@ -74,6 +74,7 @@ bool setColorCallback(uint8_t *data, uint16_t *len)
 bool setModeCallback(uint8_t *data, uint16_t *len)
 {
     DEBUG_PRINTLN("set mode callback");
+    bool result = true;
 
     /* we expect a 1 byte payload */
     if (*len != 1) {
@@ -82,16 +83,20 @@ bool setModeCallback(uint8_t *data, uint16_t *len)
     }
 
     switch(data[0]) {
-        case 0x01:
-            DEBUG_PRINTLN("Set guest mode");
-            break;
-        case 0x02:
-            DEBUG_PRINTLN("Set lecturer mode");
-            break;
+    case 0x01:
+        DEBUG_PRINTLN("Set guest mode");
+        break;
+    case 0x02:
+        DEBUG_PRINTLN("Set lecturer mode");
+        break;
+    default:
+        DEBUG_PRINTLN("unknown mode!");
+        result = false;
+        break;
     }
 
     *len = 0;
-    return true;
+    return result;
 }
 
 bool otaCallback(uint8_t *data, uint16_t *len)
@@ -115,7 +120,7 @@ bool otaCallback(uint8_t *data, uint16_t *len)
 
 bool getVersionCallback(uint8_t *data, uint16_t *len)
 {
-    DEBUG_PRINTLN("get version callback");
+    DEBUG_PRINT("Version callback: "); DEBUG_PRINTLN(VERSION);
     if (sizeof(VERSION) > BUFF_MAX) {
         *len = 0;
         return false;
@@ -164,6 +169,7 @@ void proximityHandler()
     Mendeleev.startAnimation();
 }
 
+#ifdef DEBUG
 bool isInBert(uint8_t id) {
     switch(id) {
         /* letter 'b' */
@@ -365,6 +371,7 @@ void displayName(bool (*namefunction)(uint8_t), uint8_t address) {
         Mendeleev.tick();
     }
 }
+#endif
 
 /* ----------------------------------------------------------------------- */
 /* Setup                                                                   */
@@ -386,7 +393,6 @@ void setup() {
     /* get node address */
     uint8_t address = Mendeleev.getAddress();
     DEBUG_PRINT("Address: "); DEBUG_PRINTDEC(address); DEBUG_PRINTLN(".");
-#endif
 
     /* Boot animation */
     displayName(&isInBert, address);
@@ -394,6 +400,7 @@ void setup() {
     displayName(&isInWim, address);
     delay(1000);
     displayName(&isInJoop, address);
+#endif
 
     /* Start communication */
     Mendeleev.RS485Begin(38400);
