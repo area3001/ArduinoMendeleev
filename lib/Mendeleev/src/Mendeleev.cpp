@@ -463,7 +463,7 @@ void MendeleevClass::tick()
 
 void MendeleevClass::startAnimation()
 {
-    DEBUG_PRINTLN("Starting anumation");
+    DEBUG_PRINTLN("Starting animation");
     if (_animating) return;
 
     _animationStartTime = millis();

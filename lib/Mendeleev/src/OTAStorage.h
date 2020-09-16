@@ -17,41 +17,53 @@
 
  WiFi101OTA version Feb 2017
  by Sandeep Mistry (Arduino)
- modified for ArduinoOTA Dec 2018
+ modified for ArduinoOTA Dec 2018, Apr 2019
  by Juraj Andrassy
 */
 
-#ifndef _INTERNAL_STORAGE_H_INCLUDED
-#define _INTERNAL_STORAGE_H_INCLUDED
+#ifndef _OTA_STORAGE_H_INCLUDED
+#define _OTA_STORAGE_H_INCLUDED
 
-#include "OTAStorage.h"
+#include <Arduino.h>
 
-class InternalStorageClass : public OTAStorage {
+class OTAStorage {
 public:
 
-  InternalStorageClass();
+  OTAStorage();
 
-  virtual int open(int length);
-  virtual size_t write(uint8_t);
-  virtual void close();
-  virtual void clear();
-  virtual void apply();
-  virtual long maxSize();
+  virtual int open(int length) = 0;
+  virtual int open(int length, uint8_t command) {
+    (void) command;
+    return open(length);
+  }
+  virtual size_t write(uint8_t) = 0;
+  virtual void close() = 0;
+  virtual void clear() = 0;
+  virtual void apply() = 0;
 
-  void debugPrint();
+  virtual long maxSize() {
+    return (MAX_FLASH - SKETCH_START_ADDRESS - bootloaderSize);
+  }
 
-private:
-  const uint32_t MAX_PARTIONED_SKETCH_SIZE, STORAGE_START_ADDRESS;
+protected:
+  const uint32_t SKETCH_START_ADDRESS;
+  const uint32_t PAGE_SIZE;
+  const uint32_t MAX_FLASH;
+  uint32_t bootloaderSize;
 
-  union {
-    uint32_t u32;
-    uint8_t u8[4];
-  } _addressData;
-
-  int _writeIndex;
-  uint32_t* _writeAddress;
 };
 
-extern InternalStorageClass InternalStorage;
+class ExternalOTAStorage : public OTAStorage {
+
+protected:
+  const char* updateFileName = "UPDATE.BIN";
+
+public:
+  void setUpdateFileName(const char* _updateFileName) {
+    updateFileName = _updateFileName;
+  }
+
+  virtual void apply();
+};
 
 #endif

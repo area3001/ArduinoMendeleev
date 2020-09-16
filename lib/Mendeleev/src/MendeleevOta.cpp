@@ -41,7 +41,7 @@ enum OtaError MendeleevOtaClass::write(uint8_t index, uint8_t *data, uint16_t da
                     DEBUG_PRINTLN("OTA: start update");
                     _expected_idx = 1;
                     _current_state = STATE_INPROGRESS;
-                    InternalStorage.open();
+                    InternalStorage.open(_update_file_size);
                 }
             }
         }
@@ -50,8 +50,8 @@ enum OtaError MendeleevOtaClass::write(uint8_t index, uint8_t *data, uint16_t da
         if (index != _expected_idx) {
             DEBUG_PRINT("OTA: expected idx "); DEBUG_PRINTDEC(_expected_idx);
             DEBUG_PRINT(" received "); DEBUG_PRINTDEC(index); DEBUG_PRINTLN("!");
-            InternalStorage.clear();
             InternalStorage.close();
+            InternalStorage.clear();
             _current_state = STATE_IDLE;
             ret = ERROR_INVALID_INDEX;
         }
@@ -60,11 +60,12 @@ enum OtaError MendeleevOtaClass::write(uint8_t index, uint8_t *data, uint16_t da
             while (datalen > 0 && _update_file_size > 0) {
                 InternalStorage.write((char)data[i++]);
                 _update_file_size--;
+                datalen--;
             }
             if (datalen > 0) {
                 DEBUG_PRINTLN("OTA: too much data");
-                InternalStorage.clear();
                 InternalStorage.close();
+                InternalStorage.clear();
                 _current_state = STATE_IDLE;
                 ret = ERROR_INVALID_SIZE;
             }
@@ -74,6 +75,7 @@ enum OtaError MendeleevOtaClass::write(uint8_t index, uint8_t *data, uint16_t da
             else {
                 DEBUG_PRINTLN("OTA: all data received");
                 _current_state = STATE_READY;
+                InternalStorage.close();
             }
         }
         break;
@@ -82,7 +84,6 @@ enum OtaError MendeleevOtaClass::write(uint8_t index, uint8_t *data, uint16_t da
         DEBUG_PRINTLN("OTA: We should not get here");
         // If you still write in this state
         InternalStorage.clear();
-        InternalStorage.close();
         _current_state = STATE_IDLE;
         ret = ERROR_INVALID_INDEX;
     }
@@ -103,8 +104,8 @@ void MendeleevOtaClass::tick()
         unsigned long ms = millis();
         if ((ms - _last_update) >= OTA_TIMEOUT) {
             DEBUG_PRINTLN("OTA: timeout");
-            InternalStorage.clear();
             InternalStorage.close();
+            InternalStorage.clear();
             _current_state = STATE_IDLE;
         }
     }
