@@ -16,12 +16,18 @@
 #endif
 
 bool doReboot = false;                 /* flag to trigger a reboot */
+bool ota_in_progress = false;          /* flag which indicates if an ota is in progress */
 
 /* ----------------------------------------------------------------------- */
 /* RS485 command callbacks                                                 */
 /* ----------------------------------------------------------------------- */
 bool setOutputCallback(uint8_t *data, uint16_t *len)
 {
+    if (ota_in_progress) {
+        *len = 0;
+        return false;
+    }
+
     DEBUG_PRINTLN("set output callback");
 
     /* we expect a 2 byte payload */
@@ -50,6 +56,11 @@ bool setOutputCallback(uint8_t *data, uint16_t *len)
 
 bool setColorCallback(uint8_t *data, uint16_t *len)
 {
+    if (ota_in_progress) {
+        *len = 0;
+        return false;
+    }
+
     DEBUG_PRINTLN("set color callback");
 
     /* we expect a payload between 3 and 7 bytes */
@@ -73,6 +84,11 @@ bool setColorCallback(uint8_t *data, uint16_t *len)
 
 bool setModeCallback(uint8_t *data, uint16_t *len)
 {
+    if (ota_in_progress) {
+        *len = 0;
+        return false;
+    }
+
     DEBUG_PRINTLN("set mode callback");
     bool result = true;
 
@@ -102,7 +118,6 @@ bool setModeCallback(uint8_t *data, uint16_t *len)
 bool otaCallback(uint8_t *data, uint16_t *len)
 {
     DEBUG_PRINTLN("OTA callback");
-
     /* We expect at least 1 byte for the index */
     if (*len < 2) {
         DEBUG_PRINTLN("OTA: Did not receive valid message!");
@@ -120,6 +135,11 @@ bool otaCallback(uint8_t *data, uint16_t *len)
 
 bool getVersionCallback(uint8_t *data, uint16_t *len)
 {
+    if (ota_in_progress) {
+        *len = 0;
+        return false;
+    }
+
     DEBUG_PRINT("Version callback: "); DEBUG_PRINTLN(VERSION);
     if (sizeof(VERSION) > BUFF_MAX) {
         *len = 0;
@@ -133,6 +153,11 @@ bool getVersionCallback(uint8_t *data, uint16_t *len)
 
 bool rebootCallback(uint8_t *data, uint16_t *len)
 {
+    if (ota_in_progress) {
+        *len = 0;
+        return false;
+    }
+
     DEBUG_PRINTLN("reboot callback");
     /* set the flag to trigger a reboot */
     doReboot = true;
@@ -165,6 +190,10 @@ void input3Handler()
 
 void proximityHandler()
 {
+    if (ota_in_progress) {
+        return;
+    }
+
     DEBUG_PRINTLN("Proximity interrupt handler");
     Mendeleev.startAnimation();
 }
@@ -426,12 +455,30 @@ void setup() {
 /* ----------------------------------------------------------------------- */
 void loop() {
     /* tick the mendeleev lib */
+    bool prev_state = ota_in_progress;
+    ota_in_progress = MendeleevOta.tick();
+    if (!prev_state && ota_in_progress) {
+        Mendeleev.setColor(0, 0, 255, 0, 0, 0, 0);
+    }
+    else if (prev_state && !ota_in_progress) {
+        if (MendeleevOta.state() == STATE_READY) {
+            Mendeleev.setColor(0, 255, 0, 0, 0, 0, 0);
+            Mendeleev.tick();
+            delay(2000);
+            MendeleevOta.apply();
+        }
+        else if (MendeleevOta.state() == STATE_IDLE) {
+            Mendeleev.setColor(255, 0, 0, 0, 0, 0, 0);
+        }
+    }
     Mendeleev.tick();
-    MendeleevOta.tick();
 
     /* check the reboot flag */
     if (doReboot) {
         DEBUG_PRINTLN("Rebooting...");
+        Mendeleev.setColor(255, 0, 255, 0, 0, 0, 0);
+        Mendeleev.tick();
+        delay(2000);
         NVIC_SystemReset();
         while (true);
     }

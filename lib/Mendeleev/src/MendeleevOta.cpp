@@ -93,14 +93,9 @@ enum OtaError MendeleevOtaClass::write(uint8_t index, uint8_t *data, uint16_t da
     return ret;
 }
 
-void MendeleevOtaClass::tick()
+bool MendeleevOtaClass::tick()
 {
-    if (_current_state == STATE_READY) {
-        DEBUG_PRINTLN("Executing firmware update");
-        InternalStorage.apply();
-        while (true);
-    }
-    else if (_current_state == STATE_INPROGRESS) {
+    if (_current_state == STATE_INPROGRESS) {
         unsigned long ms = millis();
         if ((ms - _last_update) >= OTA_TIMEOUT) {
             DEBUG_PRINTLN("OTA: timeout");
@@ -108,6 +103,23 @@ void MendeleevOtaClass::tick()
             InternalStorage.clear();
             _current_state = STATE_IDLE;
         }
+        else {
+            return true;
+        }
     }
+    return false;
 }
 
+enum OtaStatus MendeleevOtaClass::state()
+{
+    return _current_state;
+}
+
+void MendeleevOtaClass::apply()
+{
+    if (_current_state == STATE_READY) {
+        DEBUG_PRINTLN("Executing firmware update");
+        InternalStorage.apply();
+        while (true);
+    }
+}

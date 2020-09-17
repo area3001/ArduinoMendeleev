@@ -60,9 +60,23 @@ public:
     /**
      * @brief Tick method to check if an update needs to be applied or canceled
      *
+     * @return bool: is there an update in progress?
+     */
+    bool tick();
+
+    /**
+     * @brief get the current OTA state
+     *
+     * @return status: the current OTA status
+     */
+    enum OtaStatus state();
+
+    /**
+     * @brief Apply the update. Only if the state == READY
+     *
      * @return void
      */
-    void tick();
+    void apply();
 
 private:
     uint8_t _expected_idx;          /* Counter indicating OTA progress */
