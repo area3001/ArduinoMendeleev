@@ -98,12 +98,16 @@ bool setModeCallback(uint8_t *data, uint16_t *len)
         return false;
     }
 
-    switch(data[0]) {
-    case 0x01:
-        DEBUG_PRINTLN("Set guest mode");
+    enum Mode mode = (enum Mode)data[0];
+
+    switch(mode) {
+    case MODE_GUEST:
+        DEBUG_PRINTLN("Set lecturer mode OFF");
+        Mendeleev.setMode(mode);
         break;
-    case 0x02:
-        DEBUG_PRINTLN("Set lecturer mode");
+    case MODE_LECTURER:
+        DEBUG_PRINTLN("Set lecturer mode ON");
+        Mendeleev.setMode(mode);
         break;
     default:
         DEBUG_PRINTLN("unknown mode!");
@@ -190,10 +194,6 @@ void input3Handler()
 
 void proximityHandler()
 {
-    if (ota_in_progress) {
-        return;
-    }
-
     DEBUG_PRINTLN("Proximity interrupt handler");
     Mendeleev.startAnimation();
 }
@@ -406,11 +406,9 @@ void displayName(bool (*namefunction)(uint8_t), uint8_t address) {
 /* Setup                                                                   */
 /* ----------------------------------------------------------------------- */
 void setup() {
-// #ifdef DEBUG
-//     /* Wait until the debug terminal is connected */
-//     while (!SerialUSB);
-// #endif
+#ifdef DEBUG
     SerialUSB.begin(115200);
+#endif
     DEBUG_PRINTLN("Hello Mendeleev!");
     DEBUG_PRINT("Version: "); DEBUG_PRINTLN(VERSION);
 
@@ -454,10 +452,12 @@ void setup() {
 /* Main loop                                                               */
 /* ----------------------------------------------------------------------- */
 void loop() {
-    /* tick the mendeleev lib */
+
+    /* tick the Mendeleev OTA lib */
     bool prev_state = ota_in_progress;
     ota_in_progress = MendeleevOta.tick();
     if (!prev_state && ota_in_progress) {
+        Mendeleev.setMode(MODE_OTA);
         Mendeleev.setColor(0, 0, 255, 0, 0, 0, 0);
     }
     else if (prev_state && !ota_in_progress) {
@@ -469,8 +469,11 @@ void loop() {
         }
         else if (MendeleevOta.state() == STATE_IDLE) {
             Mendeleev.setColor(255, 0, 0, 0, 0, 0, 0);
+            Mendeleev.setMode(MODE_GUEST);
         }
     }
+
+    /* tick the Mendeleev lib */
     Mendeleev.tick();
 
     /* check the reboot flag */

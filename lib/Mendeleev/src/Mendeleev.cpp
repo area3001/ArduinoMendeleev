@@ -96,6 +96,9 @@
 /* Animation timeout in milliseconds */
 #define ANIMATION_TIMEOUT (40000)
 
+/* Animation timeout in milliseconds */
+#define MODE_TIMEOUT (40000)
+
 /* Table of CRC values for high-order byte */
 static const uint8_t table_crc_hi[] = {
     0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0,
@@ -247,7 +250,22 @@ void MendeleevClass::init()
     _mcp.pullUp(M2TYPE1_PIN, HIGH);
 
     /* Read our address */
-    _addr = _getAddress();
+    _addr = 0;
+    uint8_t value = 0;
+    value = !_mcp.digitalRead(DIPSW0_PIN);
+    _addr |= value;
+    value = !_mcp.digitalRead(DIPSW1_PIN);
+    _addr |= value << 1;
+    value = !_mcp.digitalRead(DIPSW2_PIN);
+    _addr |= value << 2;
+    value = !_mcp.digitalRead(DIPSW3_PIN);
+    _addr |= value << 3;
+    value = !_mcp.digitalRead(DIPSW4_PIN);
+    _addr |= value << 4;
+    value = !_mcp.digitalRead(DIPSW5_PIN);
+    _addr |= value << 5;
+    value = !_mcp.digitalRead(DIPSW6_PIN);
+    _addr |= value << 6;
 
     /* Read the config pin */
     DEBUG_PRINT("Config pin is: "); DEBUG_PRINTDEC(_getConfig()); DEBUG_PRINTLN(".");
@@ -267,16 +285,13 @@ void MendeleevClass::init()
         digitalWrite(M2CTRL1_PIN, _motor_direction);
     }
 
-    /* Set all LEDs of at boot */
-    _current_colors.red = 0;
-    _current_colors.green = 0;
-    _current_colors.blue = 0;
-    _current_colors.alpha = 0;
-    _current_colors.white = 0;
-    _current_colors.uv = 0;
-    _current_colors.text = 0;
-    _current_colors.motor1led = 0;
-    _current_colors.motor2led = 0;
+    /* Turn off all LEDs at boot */
+    memset(&_current_colors, 0, sizeof(_current_colors));
+    memset(&_initial_colors, 0, sizeof(_initial_colors));
+    memset(&_target_colors, 0, sizeof(_target_colors));
+
+    /* Clear all callbacks */
+    memset(&_callbacks, 0, sizeof(_callbacks));
 
     /* Set some variables for the color fading */
     _fading_max_steps = 300;
@@ -284,6 +299,7 @@ void MendeleevClass::init()
     _fading = false;
     _last_update = millis();
     _animating = false;
+    _current_mode = MODE_GUEST;
 }
 
 uint8_t MendeleevClass::getAddress()
@@ -459,12 +475,22 @@ void MendeleevClass::tick()
     if ((long) (millis() - _animationStartTime) >= ANIMATION_TIMEOUT) {
         _stopAnimation();
     }
+
+    /* timeout for lecturer mode */
+    if (_current_mode == MODE_LECTURER) {
+        if ((long) (millis() - _modeStartTime) >= MODE_TIMEOUT) {
+            DEBUG_PRINTLN("Lecturer mode timed out");
+            _current_mode = MODE_GUEST;
+            fadeColor(0, 0, 0, 0, 0, 0, 0);
+        }
+    }
 }
 
 void MendeleevClass::startAnimation()
 {
-    DEBUG_PRINTLN("Starting animation");
     if (_animating) return;
+    if (_current_mode != MODE_GUEST) return;
+    DEBUG_PRINTLN("Starting animation");
 
     _animationStartTime = millis();
     _animating = true;
@@ -475,23 +501,29 @@ void MendeleevClass::startAnimation()
     setOutput(OUTPUT_2, 1);
     setOutput(OUTPUT_3, 1);
 
-    DEBUG_PRINTLN("Outputs set");
-
     /* activate white, UV, text and motor leds */
     fadeColor(0, 0, 0, 0, 255, 255, 255);
     fadeMotorLed(MOTOR_1, 255);
     fadeMotorLed(MOTOR_2, 255);
 
-    DEBUG_PRINTLN("Leds faded");
     /* activate motors */
     tone(M1CTRL2_PIN, 10000);
     tone(M2CTRL2_PIN, 10000);
+}
 
-    DEBUG_PRINTLN("Motors activated");
+void MendeleevClass::setMode(enum Mode mode)
+{
+    _current_mode = mode;
+    if (_current_mode != MODE_GUEST) {
+        _stopAnimation();
+    }
+    if (_current_mode == MODE_LECTURER) {
+        _modeStartTime = millis();
+    }
 }
 
 /* ----------------------------------------------------------------------- */
-/* LED methods. */
+/* LED methods                                                             */
 /* ----------------------------------------------------------------------- */
 void MendeleevClass::setColor(uint8_t red, uint8_t green, uint8_t blue)
 {
@@ -551,6 +583,9 @@ void MendeleevClass::fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t
     fadeColor(red, green, blue, alpha, white);
     fadeUv(uv);
     fadeTxt(txt);
+    if (_current_mode == MODE_LECTURER) {
+        _modeStartTime = millis();
+    }
 }
 
 void MendeleevClass::setUv(uint8_t value)
@@ -655,7 +690,7 @@ enum MotorType MendeleevClass::getMotorType(enum Motors motor)
 }
 
 /* ----------------------------------------------------------------------- */
-/* input/Output methods. */
+/* input/Output methods                                                    */
 /* ----------------------------------------------------------------------- */
 
 uint8_t MendeleevClass::getInput(enum Input input)
@@ -721,29 +756,8 @@ void MendeleevClass::setOutput(enum Output output, uint8_t value)
 }
 
 /* ----------------------------------------------------------------------- */
-/* Private methods. */
+/* Private methods                                                         */
 /* ----------------------------------------------------------------------- */
-uint8_t MendeleevClass::_getAddress()
-{
-    uint8_t addr = 0;
-    uint8_t value = 0;
-    value = !_mcp.digitalRead(DIPSW0_PIN);
-    addr |= value;
-    value = !_mcp.digitalRead(DIPSW1_PIN);
-    addr |= value << 1;
-    value = !_mcp.digitalRead(DIPSW2_PIN);
-    addr |= value << 2;
-    value = !_mcp.digitalRead(DIPSW3_PIN);
-    addr |= value << 3;
-    value = !_mcp.digitalRead(DIPSW4_PIN);
-    addr |= value << 4;
-    value = !_mcp.digitalRead(DIPSW5_PIN);
-    addr |= value << 5;
-    value = !_mcp.digitalRead(DIPSW6_PIN);
-    addr |= value << 6;
-    return addr;
-}
-
 uint8_t MendeleevClass::_getConfig()
 {
     return !_mcp.digitalRead(DIPSW7_PIN);

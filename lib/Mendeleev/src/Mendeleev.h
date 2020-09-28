@@ -45,7 +45,7 @@ enum Commands {
 };
 
 /*
- * Input enum
+ * Inputs
  */
 enum Input {
     INPUT_0,
@@ -55,7 +55,7 @@ enum Input {
 };
 
 /*
- * Output enum
+ * Outputs
  */
 enum Output {
     OUTPUT_0,
@@ -65,7 +65,7 @@ enum Output {
 };
 
 /*
- * motor slot
+ * motor slots
  */
 enum Motors {
     MOTOR_1,
@@ -80,6 +80,15 @@ enum MotorType {
     MOTORTYPE_1,
     MOTORTYPE_2,
     MOTORTYPE_3
+};
+
+/*
+ * modes
+ */
+enum Mode {
+    MODE_OTA = 0x00,
+    MODE_GUEST = 0x01,
+    MODE_LECTURER = 0x02
 };
 
 /*
@@ -207,6 +216,9 @@ enum PeriodicElement {
     ELEMENT_MAX = 119
 };
 
+/*
+ * Command callback function
+ */
 typedef bool (*CommandCallback)(uint8_t *data, uint16_t *len);
 
 typedef struct _ledcolors {
@@ -226,13 +238,11 @@ class MendeleevClass
 public:
     /**
      * @brief Initialize Mendeleev board.
-     *		  Micro controller Arduino Zero compatible, RS485 interface, LEDS and???.=
+     *		  Micro controller Arduino Zero compatible, RS485 interface, LEDS
      *
      * @return void
      */
     void init();
-
-    uint8_t getAddress();
 
     /**
      * @brief Connect to RS485. With default configuration SERIAL_8N1.
@@ -348,82 +358,288 @@ public:
     /* ----------------------------------------------------------------------- */
     /* LED methods. */
     /* ----------------------------------------------------------------------- */
+
+    /**
+     * @brief Set the colors
+     *
+     * @param red The red color value
+     * @param green The green color value
+     * @param blue The blue color value
+     *
+     * @return void
+     */
     void setColor(uint8_t red, uint8_t green, uint8_t blue);
+
+    /**
+     * @brief Fade the colors
+     *
+     * @param red The red color value
+     * @param green The green color value
+     * @param blue The blue color value
+     *
+     * @return void
+     */
     void fadeColor(uint8_t red, uint8_t green, uint8_t blue);
 
+    /**
+     * @brief Set the colors
+     *
+     * @param red The red color value
+     * @param green The green color value
+     * @param blue The blue color value
+     * @param alpha The alpha color value
+     *
+     * @return void
+     */
     void setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha);
+
+    /**
+     * @brief Fade the colors
+     *
+     * @param red The red color value
+     * @param green The green color value
+     * @param blue The blue color value
+     * @param alpha The alpha color value
+     *
+     * @return void
+     */
     void fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha);
 
+    /**
+     * @brief Set the colors
+     *
+     * @param red The red color value
+     * @param green The green color value
+     * @param blue The blue color value
+     * @param alpha The alpha color value
+     * @param white The white color value
+     *
+     * @return void
+     */
     void setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white);
+
+    /**
+     * @brief Fade the colors
+     *
+     * @param red The red color value
+     * @param green The green color value
+     * @param blue The blue color value
+     * @param alpha The alpha color value
+     * @param white The white color value
+     *
+     * @return void
+     */
     void fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white);
 
+    /**
+     * @brief Set the colors
+     *
+     * @param red The red color value
+     * @param green The green color value
+     * @param blue The blue color value
+     * @param alpha The alpha color value
+     * @param white The white color value
+     * @param uv The uv color value
+     * @param txt The txt color value
+     *
+     * @return void
+     */
     void setColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white, uint8_t uv, uint8_t txt);
+
+    /**
+     * @brief Fade the colors
+     *
+     * @param red The red color value
+     * @param green The green color value
+     * @param blue The blue color value
+     * @param alpha The alpha color value
+     * @param white The white color value
+     * @param uv The uv color value
+     * @param txt The txt color value
+     *
+     * @return void
+     */
     void fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, uint8_t white, uint8_t uv, uint8_t txt);
 
+    /**
+     * @brief Set the txt value
+     *
+     * @param value The txt value
+     *
+     * @return void
+     */
     void setTxt(uint8_t value);
+
+    /**
+     * @brief Fade the txt value
+     *
+     * @param value The txt value
+     *
+     * @return void
+     */
     void fadeTxt(uint8_t value);
 
+    /**
+     * @brief Set the uv value
+     *
+     * @param value The uv value
+     *
+     * @return void
+     */
     void setUv(uint8_t value);
+
+    /**
+     * @brief Fade the uv value
+     *
+     * @param value The uv value
+     *
+     * @return void
+     */
     void fadeUv(uint8_t value);
 
+    /**
+     * @brief Set the motor led value
+     *
+     * @param motor the motor to light up
+     * @param value The uv value
+     *
+     * @return void
+     */
     void setMotorLed(enum Motors motor, uint8_t value);
+
+    /**
+     * @brief Fade the motor led value
+     *
+     * @param motor the motor to light up
+     * @param value The uv value
+     *
+     * @return void
+     */
     void fadeMotorLed(enum Motors motor, uint8_t value);
 
-    // TODO: fade to color functions?
+    // TODO: make fading speed adjustable?
     // void setFadingSpeed(uint16_t speedTime);
 
     /* ----------------------------------------------------------------------- */
     /* motor methods. */
     /* ----------------------------------------------------------------------- */
-    enum MotorType getMotorType(enum Motors motor); // TODO do we need this publicly?
 
-    void setMotorCtrl(enum Motors motor); // TODO what is this?
+    /**
+     * @brief Get the type of the motor
+     *
+     * @param motor The motor to get the type from
+     *
+     * @return enum MotorType the type of the motor
+     */
+    enum MotorType getMotorType(enum Motors motor); // TODO do we need this publicly?
 
     /* ----------------------------------------------------------------------- */
     /* input/Output methods. */
     /* ----------------------------------------------------------------------- */
+
+    /**
+     * @brief Read the state of an input
+     *
+     * @param input The input to get the value from
+     *
+     * @return int the value of the input
+     */
     uint8_t getInput(enum Input input);
 
+    /**
+     * @brief Attach an interrupt handler to an input
+     *
+     * @param input Wait delay if not available to read byte in milliseconds. Default 10.
+     * @param repeatTime Repeat time if not read bytes. Default 10. All time = delayWait * repeatTime.
+     *
+     * @return void
+     */
     void attachInputInterrupt(enum Input input, voidFuncPtr ISR, int mode);
 
+    /**
+     * @brief Attach an interrupt to the proximity input
+     *
+     * @param delayWait Wait delay if not available to read byte in milliseconds. Default 10.
+     * @param repeatTime Repeat time if not read bytes. Default 10. All time = delayWait * repeatTime.
+     *
+     * @return void
+     */
     void attachProximityInterrupt(voidFuncPtr ISR, int mode);
 
+    /**
+     * @brief Set the state of the outputs
+     *
+     * @param output Which output to set.
+     * @param value the value to set the output to.
+     *
+     * @return void
+     */
     void setOutput(enum Output output, uint8_t value);
 
-    // heartbeat
+    /**
+     * @brief Heartbeat. Reads serial data and takes care of timeouts and fading.
+     *
+     * @return void
+     */
     void tick();
 
+    /**
+     * @brief Read received data from RS485. Reading data with delay and repeating the operation while all data to arrive.
+     *
+     * @param delayWait Wait delay if not available to read byte in milliseconds. Default 10.
+     * @param repeatTime Repeat time if not read bytes. Default 10. All time = delayWait * repeatTime.
+     *
+     * @return int Received byte.
+     *   If result = -1 - buffer is empty, no data<para></para>
+     *   if result > -1 - valid byte to read.
+     */
     void startAnimation();
 
+    /**
+     * @brief Set the current mode
+     *
+     * @param mode The mode to set
+     *
+     * @return void
+     */
+    void setMode(enum Mode mode);
+
+    /**
+     * @brief Get the configured address
+     *
+     * @return int address
+     */
+    uint8_t getAddress();
+
 protected:
-    uint8_t _addr; ///< the address of this board
-    enum MotorType _slot1Type;
-    enum MotorType _slot2Type;
-    CommandCallback _callbacks[COMMAND_MAX]; ///< the array of callback functions
+    uint8_t _addr;                                ///< the address of this board
+    enum MotorType _slot1Type;                    ///< the type of the motor in slot 1
+    enum MotorType _slot2Type;                    ///< the type of the motor in slot 2
+    CommandCallback _callbacks[COMMAND_MAX];      ///< the array of callback functions
+    enum Mode _current_mode;                      ///< the current mode
 
 private:
     uint8_t _motor_direction = HIGH;
     uint8_t _dataBuffer[BUFF_MAX];
     Adafruit_MCP23017 _mcp;
 
-    // TODO: use a struct instead of an array to make it more readable?
-    LedColors _current_colors; /* R, G, B, A, W, UV, TXT, Motor 1 LED, Motor 2 LED */
-    LedColors _initial_colors; // Used when fading.
-    LedColors _target_colors;  // Used when fading.
-    uint16_t _fading_step;       // Current step of the fading.
-    uint16_t _fading_max_steps;  // The total number of steps when fading.
-    uint16_t _fading_step_time;  // The number of ms between two variation of color when fading.
-    bool _fading;                // Are we fading now ?
-    unsigned long _last_update;  // Last time we did something.
-    void _fade();                // Used internaly to fade
+    LedColors _current_colors;                    /* R, G, B, A, W, UV, TXT, Motor 1 LED, Motor 2 LED */
+    LedColors _initial_colors;                    // Used when fading.
+    LedColors _target_colors;                     // Used when fading.
+    uint16_t _fading_step;                        // Current step of the fading.
+    uint16_t _fading_max_steps;                   // The total number of steps when fading.
+    uint16_t _fading_step_time;                   // The number of ms between two variation of color when fading.
+    bool _fading;                                 // Are we fading now ?
+    unsigned long _last_update;                   // Last time we did something.
+    void _fade();                                 // Used internaly to fade
 
-    uint8_t _getAddress();
-    uint8_t _getConfig();
-    void _parse(uint8_t *buf, uint16_t* len);
-    uint16_t _crc16(uint8_t *buf, uint16_t len);
-    void _stopAnimation();
-    bool _animating;
-    unsigned long _animationStartTime;
+    uint8_t _getConfig();                         // Get the value of the config pin
+    void _parse(uint8_t *buf, uint16_t* len);     // Parse the incoming data
+    uint16_t _crc16(uint8_t *buf, uint16_t len);  // Calculate the checksum
+    void _stopAnimation();                        // Stop the animation
+    bool _animating;                              // Is the animation currently running?
+    unsigned long _animationStartTime;            // animation start time
+    unsigned long _modeStartTime;                 // lecturer mode start time
 };
 
 extern MendeleevClass Mendeleev;
