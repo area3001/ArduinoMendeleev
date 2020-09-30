@@ -97,7 +97,7 @@
 #define ANIMATION_TIMEOUT (40000)
 
 /* Animation timeout in milliseconds */
-#define MODE_TIMEOUT (40000)
+#define MODE_TIMEOUT (400000)
 
 /* Table of CRC values for high-order byte */
 static const uint8_t table_crc_hi[] = {
@@ -583,9 +583,6 @@ void MendeleevClass::fadeColor(uint8_t red, uint8_t green, uint8_t blue, uint8_t
     fadeColor(red, green, blue, alpha, white);
     fadeUv(uv);
     fadeTxt(txt);
-    if (_current_mode == MODE_LECTURER) {
-        _modeStartTime = millis();
-    }
 }
 
 void MendeleevClass::setUv(uint8_t value)
@@ -781,6 +778,10 @@ uint16_t MendeleevClass::_crc16(uint8_t *buffer, uint16_t buffer_length)
 
 void MendeleevClass::_parse(uint8_t *buf, uint16_t *len)
 {
+    if (_current_mode == MODE_LECTURER) {
+        _modeStartTime = millis();
+    }
+
     if (*len < PACKET_OVERHEAD) {
         /* The packet is not complete yet */
         return;
