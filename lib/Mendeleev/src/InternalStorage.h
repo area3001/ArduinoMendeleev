@@ -1,3 +1,4 @@
+// https://raw.githubusercontent.com/JAndrassy/ArduinoOTA/1.0.9/src/InternalStorage.h
 /*
   Copyright (c) 2017 Arduino LLC.  All right reserved.
 
@@ -48,6 +49,7 @@ private:
     uint8_t u8[4];
   } _addressData;
 
+  uint32_t pageAlignedLength;
   int _writeIndex;
   uint32_t* _writeAddress;
 };
