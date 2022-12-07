@@ -23,21 +23,6 @@
 #define BROADCAST_ADDR        (0xFF)
 #define PACKET_PREAMBLE       (0xA5)
 
-#define PACKET_PREAMBLE_SIZE  (8u)
-#define PACKET_ADDR_SIZE      (1u)
-#define PACKET_SEQNR_SIZE     (2u)
-#define PACKET_CMD_SIZE       (1u)
-#define PACKET_LEN_SIZE       (2u)
-#define PACKET_CHKSM_SIZE     (2u)
-
-#define PACKET_DEST_OFFSET    (PACKET_PREAMBLE_SIZE)
-#define PACKET_SRC_OFFSET     (PACKET_DEST_OFFSET + PACKET_ADDR_SIZE)
-#define PACKET_SEQNR_OFFSET   (PACKET_SRC_OFFSET + PACKET_ADDR_SIZE)
-#define PACKET_CMD_OFFSET     (PACKET_SEQNR_OFFSET + PACKET_SEQNR_SIZE)
-#define PACKET_LEN_OFFSET     (PACKET_CMD_OFFSET + PACKET_CMD_SIZE)
-#define PACKET_DATA_OFFSET    (PACKET_LEN_OFFSET + PACKET_LEN_SIZE)
-#define PACKET_OVERHEAD       (PACKET_PREAMBLE_SIZE + (2 * PACKET_ADDR_SIZE) + PACKET_SEQNR_SIZE + PACKET_CMD_SIZE + PACKET_LEN_SIZE + PACKET_CHKSM_SIZE)
-
 /* RS485 Pins */
 #define RS485_DIR_PIN PIN_A5  /* PB02 */
 #define RS485Serial   Serial  /* Sercom5 (uses UART.RXD/PB23, UART.TXD/PB22) */
@@ -307,6 +292,11 @@ uint8_t MendeleevClass::getAddress()
     return _addr;
 }
 
+void MendeleevClass::setAddress(uint8_t addr)
+{
+    _addr = addr;
+}
+
 /* ----------------------------------------------------------------------- */
 /* RS485 methods. */
 /* ----------------------------------------------------------------------- */
@@ -484,6 +474,23 @@ void MendeleevClass::tick()
             fadeColor(0, 0, 0, 0, 0, 0, 0);
         }
     }
+}
+
+void MendeleevClass::broadcastMessage(uint8_t cmd, uint8_t *data, uint16_t datalen) {
+    memset(_dataBuffer, PACKET_PREAMBLE, PACKET_PREAMBLE_SIZE);
+    _dataBuffer[PACKET_DEST_OFFSET] = 0xFF;
+    _dataBuffer[PACKET_SRC_OFFSET] = _addr;
+    _dataBuffer[PACKET_SEQNR_OFFSET] = 0;
+    _dataBuffer[PACKET_CMD_OFFSET] = cmd;
+    _dataBuffer[PACKET_LEN_OFFSET] = datalen >> 8;
+    _dataBuffer[PACKET_LEN_OFFSET + 1] = datalen & 0x00FF;
+    if (datalen > 0) {
+        memcpy(&_dataBuffer[PACKET_DATA_OFFSET], data, datalen);
+    }
+    uint16_t chksm = _crc16(_dataBuffer + PACKET_DEST_OFFSET, PACKET_DATA_OFFSET + datalen - PACKET_PREAMBLE_SIZE);
+    _dataBuffer[PACKET_DATA_OFFSET + datalen] = chksm >> 8;
+    _dataBuffer[PACKET_DATA_OFFSET + datalen + 1] = chksm & 0x00FF;
+    RS485Write(_dataBuffer, PACKET_OVERHEAD + datalen);
 }
 
 void MendeleevClass::startAnimation()

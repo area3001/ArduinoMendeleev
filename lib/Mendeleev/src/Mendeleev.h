@@ -31,6 +31,21 @@
 
 #define BUFF_MAX (240)
 
+#define PACKET_PREAMBLE_SIZE  (8u)
+#define PACKET_ADDR_SIZE      (1u)
+#define PACKET_SEQNR_SIZE     (2u)
+#define PACKET_CMD_SIZE       (1u)
+#define PACKET_LEN_SIZE       (2u)
+#define PACKET_CHKSM_SIZE     (2u)
+
+#define PACKET_DEST_OFFSET    (PACKET_PREAMBLE_SIZE)
+#define PACKET_SRC_OFFSET     (PACKET_DEST_OFFSET + PACKET_ADDR_SIZE)
+#define PACKET_SEQNR_OFFSET   (PACKET_SRC_OFFSET + PACKET_ADDR_SIZE)
+#define PACKET_CMD_OFFSET     (PACKET_SEQNR_OFFSET + PACKET_SEQNR_SIZE)
+#define PACKET_LEN_OFFSET     (PACKET_CMD_OFFSET + PACKET_CMD_SIZE)
+#define PACKET_DATA_OFFSET    (PACKET_LEN_OFFSET + PACKET_LEN_SIZE)
+#define PACKET_OVERHEAD       (PACKET_PREAMBLE_SIZE + (2 * PACKET_ADDR_SIZE) + PACKET_SEQNR_SIZE + PACKET_CMD_SIZE + PACKET_LEN_SIZE + PACKET_CHKSM_SIZE)
+
 /*
  * Commands
  */
@@ -41,7 +56,8 @@ enum Commands {
     COMMAND_GET_VERSION = 0x03,
     COMMAND_SET_OUTPUT = 0x04,
     COMMAND_REBOOT = 0x05,
-    COMMAND_MAX = 0x06
+    COMMAND_SETUP = 0x06,
+    COMMAND_MAX = 0x07
 };
 
 /*
@@ -88,7 +104,18 @@ enum MotorType {
 enum Mode {
     MODE_OTA = 0x00,
     MODE_GUEST = 0x01,
-    MODE_LECTURER = 0x02
+    MODE_LECTURER = 0x02,
+    MODE_SETUP = 0x03
+};
+
+/*
+ * setup actions
+ */
+enum Setup {
+    SETUP_START = 0x00,
+    SETUP_READY = 0x01,
+    SETUP_ADDRESS = 0x02,
+    SETUP_STOP = 0x03
 };
 
 /*
@@ -584,6 +611,17 @@ public:
     void tick();
 
     /**
+     * @brief Send a broadcast message.
+     *
+     * @param cmd Command to be sent in the broadcast message
+     * @param data data to be sent in the broadcast message
+     * @param datalen Length of the data to be sent in the broadcast message.
+     *
+     * @return void
+     */
+    void broadcastMessage(uint8_t cmd, uint8_t *data, uint16_t datalen);
+
+    /**
      * @brief Read received data from RS485. Reading data with delay and repeating the operation while all data to arrive.
      *
      * @param delayWait Wait delay if not available to read byte in milliseconds. Default 10.
@@ -610,6 +648,15 @@ public:
      * @return int address
      */
     uint8_t getAddress();
+
+    /**
+     * @brief Set the configured address
+     *
+     * @param addr The address to set
+     *
+     * @return void
+     */
+    void setAddress(uint8_t addr);
 
 protected:
     uint8_t _addr;                                ///< the address of this board

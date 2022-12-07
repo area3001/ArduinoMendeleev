@@ -17,13 +17,15 @@
 
 bool doReboot = false;                 /* flag to trigger a reboot */
 bool ota_in_progress = false;          /* flag which indicates if an ota is in progress */
+bool setup_in_progress = false;        /* flag which indicates if a setup procedure is in progress */
+bool selected_for_setup = false;       /* flag which indicates if a new address is for me */
 
 /* ----------------------------------------------------------------------- */
 /* RS485 command callbacks                                                 */
 /* ----------------------------------------------------------------------- */
 bool setOutputCallback(uint8_t *data, uint16_t *len)
 {
-    if (ota_in_progress) {
+    if (ota_in_progress || setup_in_progress) {
         *len = 0;
         return false;
     }
@@ -56,7 +58,7 @@ bool setOutputCallback(uint8_t *data, uint16_t *len)
 
 bool setColorCallback(uint8_t *data, uint16_t *len)
 {
-    if (ota_in_progress) {
+    if (ota_in_progress || setup_in_progress) {
         *len = 0;
         return false;
     }
@@ -84,7 +86,7 @@ bool setColorCallback(uint8_t *data, uint16_t *len)
 
 bool setModeCallback(uint8_t *data, uint16_t *len)
 {
-    if (ota_in_progress) {
+    if (ota_in_progress || setup_in_progress) {
         *len = 0;
         return false;
     }
@@ -139,13 +141,13 @@ bool otaCallback(uint8_t *data, uint16_t *len)
 
 bool getVersionCallback(uint8_t *data, uint16_t *len)
 {
-    if (ota_in_progress) {
+    if (ota_in_progress || setup_in_progress) {
         *len = 0;
         return false;
     }
 
     DEBUG_PRINT("Version callback: "); DEBUG_PRINTLN(VERSION);
-    if (sizeof(VERSION) > BUFF_MAX) {
+    if (sizeof(VERSION) > (BUFF_MAX-PACKET_OVERHEAD)) {
         *len = 0;
         return false;
     }
@@ -157,7 +159,7 @@ bool getVersionCallback(uint8_t *data, uint16_t *len)
 
 bool rebootCallback(uint8_t *data, uint16_t *len)
 {
-    if (ota_in_progress) {
+    if (ota_in_progress || setup_in_progress) {
         *len = 0;
         return false;
     }
@@ -167,6 +169,62 @@ bool rebootCallback(uint8_t *data, uint16_t *len)
     doReboot = true;
     *len = 0;
     return true;
+}
+
+bool setupCallback(uint8_t *data, uint16_t *len)
+{
+    bool result = false;
+    enum Setup setup;
+
+    if (ota_in_progress) {
+        goto end;
+    }
+
+    DEBUG_PRINTLN("setup callback");
+    /* we expect a 1 or 2 byte payload */
+    if (*len < 1) {
+        goto end;
+    }
+
+    setup = (enum Setup)data[0];
+    switch(setup) {
+    case SETUP_START:
+        DEBUG_PRINTLN("Start setup");
+        setup_in_progress = true;
+        selected_for_setup = false;
+        Mendeleev.setColor(0, 0, 255, 0, 0, 0, 0);
+        Mendeleev.setMode(MODE_SETUP);
+        break;
+    case SETUP_ADDRESS:
+        if (setup_in_progress && selected_for_setup && (*len == 2)) {
+            uint8_t addr = data[1];
+            Mendeleev.setAddress(addr);
+            DEBUG_PRINT("New address set: "); DEBUG_PRINTLN(addr);
+            Mendeleev.setColor(0, 255, 0, 0, 0, 0, 0);
+        } else {
+            goto end;
+        }
+        break;
+    case SETUP_STOP:
+        DEBUG_PRINTLN("Stop setup");
+        setup_in_progress = false;
+        selected_for_setup = false;
+        Mendeleev.setColor(0, 0, 0, 0, 0, 0, 0);
+        Mendeleev.setMode(MODE_GUEST);
+        break;
+    default:
+        DEBUG_PRINT("Unknown setup command: "); DEBUG_PRINTLN(setup);
+        goto end;
+    }
+    result = true;
+
+end:
+    *len = 0;
+    /*
+     * An acknowledge will not be sent because
+     * these are broadcast messages.
+     */
+    return result;
 }
 
 /* ----------------------------------------------------------------------- */
@@ -195,7 +253,22 @@ void input3Handler()
 void proximityHandler()
 {
     DEBUG_PRINTLN("Proximity interrupt handler");
-    Mendeleev.startAnimation();
+    if (setup_in_progress) {
+        /* We use the proximity sensor to indicate that
+         * this element is selected to receive and save
+         * the new address that will be sent by the master.
+         * Also, we notify the master that we are ready
+         * to receive the broadcast message containing
+         * the new address.
+         */
+        selected_for_setup = true;
+        uint8_t payload[1] = { SETUP_READY };
+        Mendeleev.broadcastMessage(COMMAND_SETUP, payload, 1);
+        DEBUG_PRINTLN("SETUP_READY sent");
+        Mendeleev.setColor(255, 0, 255, 0, 0, 0, 0);
+    } else {
+        Mendeleev.startAnimation();
+    }
 }
 
 #ifdef DEBUG
@@ -439,6 +512,7 @@ void setup() {
     Mendeleev.registerCallback(COMMAND_GET_VERSION, &getVersionCallback);
     Mendeleev.registerCallback(COMMAND_SET_OUTPUT,  &setOutputCallback);
     Mendeleev.registerCallback(COMMAND_REBOOT,      &rebootCallback);
+    Mendeleev.registerCallback(COMMAND_SETUP,       &setupCallback);
 
     /* Attach interrupt handlers to the inputs */
     Mendeleev.attachInputInterrupt(INPUT_0, input0Handler, CHANGE);
@@ -458,16 +532,19 @@ void loop() {
     ota_in_progress = MendeleevOta.tick();
     if (!prev_state && ota_in_progress) {
         Mendeleev.setMode(MODE_OTA);
+        /* turn on blue leds when OTA in progress */
         Mendeleev.setColor(0, 0, 255, 0, 0, 0, 0);
     }
     else if (prev_state && !ota_in_progress) {
         if (MendeleevOta.state() == STATE_READY) {
+            /* turn on green led when OTA was successful */
             Mendeleev.setColor(0, 255, 0, 0, 0, 0, 0);
             Mendeleev.tick();
             delay(2000);
             MendeleevOta.apply();
         }
         else if (MendeleevOta.state() == STATE_IDLE) {
+            /* turn on red led when OTA failed */
             Mendeleev.setColor(255, 0, 0, 0, 0, 0, 0);
             Mendeleev.setMode(MODE_GUEST);
         }

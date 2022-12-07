@@ -97,7 +97,7 @@ enum OtaError MendeleevOtaClass::write(uint8_t index, uint8_t *data, uint16_t da
 bool MendeleevOtaClass::tick()
 {
     if (_current_state == STATE_INPROGRESS) {
-        if ((long) (millis() - _last_update) >= OTA_TIMEOUT) {
+        if ((unsigned long) (millis() - _last_update) >= OTA_TIMEOUT) {
             DEBUG_PRINTLN("OTA: timeout");
             InternalStorage.close();
             InternalStorage.clear();
